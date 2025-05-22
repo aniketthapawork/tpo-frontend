@@ -16,6 +16,7 @@ import LoginPage from "./pages/Auth/LoginPage";
 import SignupPage from "./pages/Auth/SignupPage";
 import PlacementsListPage from "./pages/Placements/PlacementsListPage";
 import PlacementDetailPage from "./pages/Placements/PlacementDetailPage";
+import ProfilePage from "./pages/ProfilePage"; // Import ProfilePage
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -45,7 +46,8 @@ const App = () => (
               <Route element={<ProtectedRoute />}>
                 <Route path="/placements" element={<PlacementsListPage />} />
                 <Route path="/placements/:id" element={<PlacementDetailPage />} />
-                {/* Add other protected routes here: /profile, admin routes, etc. */}
+                <Route path="/profile" element={<ProfilePage />} /> {/* Add ProfilePage route */}
+                {/* Add other protected routes here: admin routes, etc. */}
               </Route>
               <Route path="*" element={<NotFound />} />
             </Route>
@@ -57,3 +59,4 @@ const App = () => (
 );
 
 export default App;
+
