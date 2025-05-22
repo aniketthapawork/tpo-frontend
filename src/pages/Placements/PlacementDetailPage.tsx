@@ -1,13 +1,14 @@
-
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getPlacementById } from '@/api/placementService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, ArrowLeft, Briefcase, Building, CalendarDays, FileText, Users, CircleDollarSign, MapPin, Laptop, CalendarClock, LinkIcon, ExternalLink, AlertTriangle, Info, Edit, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext'; // To check for admin role later
+import { useAuth } from '@/contexts/AuthContext';
+import PlacementInterviews from '@/components/placements/PlacementInterviews';
+import PlacementSelections from '@/components/placements/PlacementSelections';
 
 interface Company {
   name: string;
@@ -51,7 +52,8 @@ interface PlacementDetails {
 
 const PlacementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth(); // For future admin checks
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [placement, setPlacement] = useState<PlacementDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +114,6 @@ const PlacementDetailPage = () => {
     );
   }
   
-  // Helper to render section if data exists
   const renderDetail = (IconComponent: React.ElementType, label: string, value?: string | string[] | null, isLink: boolean = false) => {
     if (!value || (Array.isArray(value) && value.length === 0)) return null;
     const displayValue = Array.isArray(value) ? value.join(', ') : value;
@@ -133,7 +134,6 @@ const PlacementDetailPage = () => {
     );
   };
 
-
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="container mx-auto">
@@ -145,7 +145,7 @@ const PlacementDetailPage = () => {
           </Link>
         </div>
 
-        <Card className="shadow-lg">
+        <Card className="shadow-lg mb-6">
           <CardHeader className="border-b pb-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
               <div>
@@ -154,7 +154,6 @@ const PlacementDetailPage = () => {
                   <Building className="mr-2 h-5 w-5" /> {placement.company.name}
                 </CardDescription>
               </div>
-              {/* Admin buttons placeholder */}
               {user?.role === 'admin' && (
                 <div className="mt-4 sm:mt-0 space-x-2">
                   <Button variant="outline" size="sm" disabled> {/* onClick={() => navigate(`/admin/placements/edit/${placement._id}`)} */}
@@ -173,7 +172,6 @@ const PlacementDetailPage = () => {
             )}
           </CardHeader>
           <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Column 1: Core Job Details */}
             <div className="md:col-span-2 space-y-4">
               {renderDetail(Briefcase, "Job Designation", placement.jobDesignation)}
               {renderDetail(CircleDollarSign, "CTC / Stipend", placement.ctcDetails)}
@@ -184,7 +182,6 @@ const PlacementDetailPage = () => {
               {renderDetail(Users, "Eligible Batches", placement.batches)}
             </div>
             
-            {/* Column 2: Dates & Links */}
             <div className="space-y-4">
               {renderDetail(CalendarDays, "Application Deadline", placement.applicationDeadline ? new Date(placement.applicationDeadline).toLocaleDateString() : 'N/A')}
               {renderDetail(CalendarClock, "Tentative Drive Date", placement.tentativeDriveDate ? new Date(placement.tentativeDriveDate).toLocaleDateString() : 'N/A')}
@@ -199,7 +196,6 @@ const PlacementDetailPage = () => {
               </div>
             </div>
 
-            {/* Full Width Sections */}
             {placement.driveRounds && placement.driveRounds.length > 0 && (
               <div className="md:col-span-3 space-y-2 pt-4 border-t mt-2">
                 <h3 className="text-lg font-semibold text-slate-700">Drive Rounds:</h3>
@@ -225,7 +221,7 @@ const PlacementDetailPage = () => {
             {placement.updates && placement.updates.length > 0 && (
                <div className="md:col-span-3 space-y-3 pt-4 border-t mt-2">
                 <h3 className="text-lg font-semibold text-slate-700">Updates:</h3>
-                {placement.updates.slice().reverse().map(update => ( // Show newest first
+                {placement.updates.slice().reverse().map(update => ( 
                   <Card key={update._id} className="bg-blue-50 border-blue-200">
                     <CardHeader className="pb-2 pt-3">
                       <CardTitle className="text-md text-blue-700 flex items-center">
@@ -245,9 +241,16 @@ const PlacementDetailPage = () => {
                 ))}
               </div>
             )}
-
           </CardContent>
         </Card>
+
+        {id && (
+          <>
+            <PlacementInterviews placementId={id} />
+            <PlacementSelections placementId={id} />
+          </>
+        )}
+        
       </div>
     </div>
   );
