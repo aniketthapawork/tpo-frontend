@@ -1,59 +1,22 @@
 
+```tsx
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSelectionsByPlacementId, SelectionRecord, SelectedStudent, SelectionData } from '@/api/selectionService'; // addSelection, updateSelection, deleteSelection removed as they are only used by mutations
-import { addSelection, updateSelection, deleteSelection } from '@/api/selectionService'; // Re-added for mutations
+import { getSelectionsByPlacementId, SelectionRecord, SelectedStudent, SelectionData, addSelection, updateSelection, deleteSelection } from '@/api/selectionService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, PlusCircle } from 'lucide-react'; // Award, Edit, Trash2, FileText removed as they are in SelectionListItem
+import { DialogTrigger } from "@/components/ui/dialog"; // Only DialogTrigger needed here now
+import { Loader2, AlertTriangle, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-// import { Badge } from '@/components/ui/badge'; // Badge was unused
-// import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'; // Table components moved to SelectionListItem
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog";
-// AlertDialog components moved to SelectionListItem
-import { useForm, useFieldArray } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Form } from "@/components/ui/form"; // FormControl, FormField, FormItem, FormLabel, FormMessage moved to SelectionFormFields
-// import { Input } from "@/components/ui/input"; // Moved to SelectionFormFields
-// import { Textarea } from "@/components/ui/textarea"; // Moved to SelectionFormFields
 import { toast } from '@/hooks/use-toast';
 import SelectionListItem from './SelectionListItem';
-import SelectionFormFields from './SelectionFormFields';
-
+import AddSelectionDialog from './AddSelectionDialog';
+import EditSelectionDialog from './EditSelectionDialog';
+import { SelectionFormData, SelectedStudentInput } from './selectionSchemas'; // For processStudentData & submit handlers
 
 interface PlacementSelectionsProps {
   placementId: string;
 }
-
-// Schemas remain here as they define the form structure and are used by useForm
-const selectedStudentSchema = z.object({
-  _id: z.string().optional(),
-  name: z.string().min(1, "Name is required"),
-  rollno: z.string().min(1, "Roll number is required"),
-  branch: z.string().min(1, "Branch is required"),
-});
-
-const selectionSchema = z.object({
-  selectedStudents: z.array(selectedStudentSchema).min(1, "At least one student must be selected with complete details."),
-  nextSteps: z.string().optional(),
-  documentLink: z.string().url("Must be a valid URL").optional().or(z.literal('')),
-  additionalNotes: z.string().optional(),
-});
-
-type SelectionFormData = z.infer<typeof selectionSchema>;
-// Type for student appended to form, matches selectedStudentSchema
-type SelectedStudentInput = z.infer<typeof selectedStudentSchema>;
-
 
 const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }) => {
   const { user } = useAuth();
@@ -62,34 +25,9 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
   const [editingSelection, setEditingSelection] = useState<SelectionRecord | null>(null);
   const [currentDeletingId, setCurrentDeletingId] = useState<string | null>(null);
 
-
   const { data: selections, isLoading, error, refetch } = useQuery<SelectionRecord[], Error>({
     queryKey: ['selections', placementId],
     queryFn: () => getSelectionsByPlacementId(placementId),
-  });
-
-  const addSelectionForm = useForm<SelectionFormData>({
-    resolver: zodResolver(selectionSchema),
-    defaultValues: {
-      selectedStudents: [{ name: '', rollno: '', branch: '' }],
-      nextSteps: '',
-      documentLink: '',
-      additionalNotes: '',
-    },
-  });
-
-  const editSelectionForm = useForm<SelectionFormData>({
-    resolver: zodResolver(selectionSchema),
-  });
-
-  const { fields: addFields, append: addAppend, remove: addRemove } = useFieldArray({
-    control: addSelectionForm.control,
-    name: "selectedStudents",
-  });
-
-  const { fields: editFields, append: editAppend, remove: editRemove } = useFieldArray({
-    control: editSelectionForm.control,
-    name: "selectedStudents",
   });
 
   const addMutation = useMutation({
@@ -98,12 +36,6 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
       queryClient.invalidateQueries({ queryKey: ['selections', placementId] });
       toast({ title: "Success", description: "Selection added successfully." });
       setShowAddDialog(false);
-      addSelectionForm.reset({
-        selectedStudents: [{ name: '', rollno: '', branch: '' }],
-        nextSteps: '',
-        documentLink: '',
-        additionalNotes: '',
-      });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.response?.data?.message || "Failed to add selection.", variant: "destructive" });
@@ -116,7 +48,6 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
       queryClient.invalidateQueries({ queryKey: ['selections', placementId] });
       toast({ title: "Success", description: "Selection updated successfully." });
       setEditingSelection(null);
-      editSelectionForm.reset();
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.response?.data?.message || "Failed to update selection.", variant: "destructive" });
@@ -135,13 +66,12 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
       setCurrentDeletingId(null);
     },
   });
-
+  
   const processStudentData = (students: SelectedStudentInput[]): SelectedStudent[] => {
     const validStudents = students.filter(s => s.name && s.rollno && s.branch).map(s => ({
         name: s.name,
         rollno: s.rollno,
         branch: s.branch,
-        // _id is passed if it exists (for updates), omitted for new students in add.
         ...(s._id && { _id: s._id }), 
     }));
     
@@ -149,17 +79,31 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
         toast({ title: "Validation Error", description: "Please ensure all selected students have a name, roll number, and branch.", variant: "destructive"});
         throw new Error("Invalid student data");
     }
-    if (validStudents.length === 0) {
-        toast({ title: "Validation Error", description: "At least one student must be selected with complete details.", variant: "destructive"});
-        throw new Error("No valid students");
-    }
+    // The Zod schema already ensures at least one student. This check is for partial entries.
+    // if (validStudents.length === 0) { 
+    //     toast({ title: "Validation Error", description: "At least one student must be selected with complete details.", variant: "destructive"});
+    //     throw new Error("No valid students");
+    // }
     return validStudents as SelectedStudent[];
   };
-
 
   const handleAddSubmit = (data: SelectionFormData) => {
     try {
       const processedStudents = processStudentData(data.selectedStudents);
+       if (processedStudents.length === 0 && data.selectedStudents.length > 0) { // If all students were invalid but some were attempted
+        // Toast is already handled in processStudentData if it throws an error
+        // but if it doesn't throw (e.g. all fields blank for all students), Zod handles it.
+        // This scenario is for if processStudentData filters out all students but doesn't throw.
+        if (data.selectedStudents.some(s => s.name || s.rollno || s.branch)) {
+          // This case should be caught by Zod for individual fields or processStudentData's first throw.
+        } else { // All students were completely blank - Zod catches this via .min(1) on array.
+            return; // Zod will show the error "At least one student must be selected..."
+        }
+      } else if (processedStudents.length === 0) { // No students submitted / Zod should catch
+        return;
+      }
+
+
       const selectionData: SelectionData = {
         selectedStudents: processedStudents,
         nextSteps: data.nextSteps ? data.nextSteps.split('\n').map(s => s.trim()).filter(s => s) : [],
@@ -168,8 +112,8 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
       };
       addMutation.mutate(selectionData);
     } catch (e) {
-      // Toast is handled in processStudentData
-      console.error("Submission error:", e);
+      // Error already toasted by processStudentData
+      console.error("Submission error in handleAddSubmit:", e);
     }
   };
 
@@ -177,6 +121,16 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
     if (!editingSelection) return;
     try {
       const processedStudents = processStudentData(data.selectedStudents);
+       if (processedStudents.length === 0 && data.selectedStudents.length > 0) {
+           if (data.selectedStudents.some(s => s.name || s.rollno || s.branch)) {
+               // already handled by processStudentData or Zod
+           } else {
+               return;
+           }
+       } else if (processedStudents.length === 0) {
+           return;
+       }
+
       const selectionData: Partial<SelectionData> = {
         selectedStudents: processedStudents,
         nextSteps: data.nextSteps ? data.nextSteps.split('\n').map(s => s.trim()).filter(s => s) : [],
@@ -185,8 +139,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
       };
       updateMutation.mutate({ id: editingSelection._id, data: selectionData });
     } catch (e) {
-      // Toast is handled in processStudentData
-      console.error("Submission error:", e);
+      console.error("Submission error in handleEditSubmit:", e);
     }
   };
   
@@ -197,21 +150,6 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
 
   const handleEdit = (selection: SelectionRecord) => {
     setEditingSelection(selection);
-    // Ensure student objects have _id for editing, even if backend sometimes omits it on fetch
-    // The form expects _id to be part of the student object if it's an existing student.
-    const studentsForForm = selection.selectedStudents.map(s => ({ 
-      _id: s._id || undefined, // Ensure _id is explicitly undefined if not present
-      name: s.name,
-      rollno: s.rollno,
-      branch: s.branch,
-    }));
-
-    editSelectionForm.reset({
-      selectedStudents: studentsForForm,
-      nextSteps: selection.nextSteps?.join('\n') || '',
-      documentLink: selection.documentLink || '',
-      additionalNotes: selection.additionalNotes?.join('\n') || '',
-    });
   };
 
   if (isLoading) {
@@ -241,47 +179,11 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
           <CardDescription>Students selected for this placement opportunity. Multiple selection lists can be added.</CardDescription>
         </div>
         {user?.role === 'admin' && (
-          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Selection List
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add New Selection List</DialogTitle>
-                <DialogDescription>Add a list of final selected students for this placement.</DialogDescription>
-              </DialogHeader>
-              <Form {...addSelectionForm}>
-                <form onSubmit={addSelectionForm.handleSubmit(handleAddSubmit)} className="space-y-4">
-                  <SelectionFormFields
-                    formControl={addSelectionForm.control}
-                    studentFields={addFields}
-                    studentAppend={(value) => addAppend(value as SelectedStudentInput)}
-                    studentRemove={addRemove}
-                    errors={addSelectionForm.formState.errors}
-                  />
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button type="button" variant="outline" onClick={() => {
-                        setShowAddDialog(false);
-                        addSelectionForm.reset({ // Reset form on explicit cancel too
-                            selectedStudents: [{ name: '', rollno: '', branch: '' }],
-                            nextSteps: '',
-                            documentLink: '',
-                            additionalNotes: '',
-                        });
-                      }}>Cancel</Button>
-                    </DialogClose>
-                    <Button type="submit" disabled={addMutation.isPending}>
-                      {addMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Add Selection List
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </DialogContent>
-          </Dialog>
+          <DialogTrigger asChild>
+            <Button size="sm" onClick={() => setShowAddDialog(true)}>
+              <PlusCircle className="mr-2 h-4 w-4" /> Add Selection List
+            </Button>
+          </DialogTrigger>
         )}
       </CardHeader>
       <CardContent>
@@ -303,40 +205,23 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
           <p className="text-slate-600 dark:text-slate-400">No final selection data available yet.</p>
         )}
 
-        {/* Edit Selection Dialog */}
-        <Dialog open={!!editingSelection} onOpenChange={(isOpen) => { if(!isOpen) { setEditingSelection(null); editSelectionForm.reset(); } }}>
-          <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Edit Selection List</DialogTitle>
-              <DialogDescription>Update the selection list details.</DialogDescription>
-            </DialogHeader>
-            {editingSelection && ( // Ensure editingSelection is not null before rendering form
-              <Form {...editSelectionForm}>
-                <form onSubmit={editSelectionForm.handleSubmit(handleEditSubmit)} className="space-y-4">
-                  <SelectionFormFields
-                    formControl={editSelectionForm.control}
-                    studentFields={editFields}
-                    studentAppend={(value) => editAppend(value as SelectedStudentInput)}
-                    studentRemove={editRemove}
-                    errors={editSelectionForm.formState.errors}
-                  />
-                  <DialogFooter>
-                    <DialogClose asChild>
-                       <Button type="button" variant="outline" onClick={() => { setEditingSelection(null); editSelectionForm.reset();}}>Cancel</Button>
-                    </DialogClose>
-                    <Button type="submit" disabled={updateMutation.isPending}>
-                      {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Update Selection List
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            )}
-          </DialogContent>
-        </Dialog>
+        <AddSelectionDialog
+          open={showAddDialog}
+          onOpenChange={setShowAddDialog}
+          onSubmit={handleAddSubmit}
+          isSubmitting={addMutation.isPending}
+        />
+        
+        <EditSelectionDialog
+          selectionRecordToEdit={editingSelection}
+          onOpenChange={(isOpen) => { if(!isOpen) setEditingSelection(null); }}
+          onSubmit={handleEditSubmit}
+          isSubmitting={updateMutation.isPending}
+        />
       </CardContent>
     </Card>
   );
 };
 
 export default PlacementSelections;
+```

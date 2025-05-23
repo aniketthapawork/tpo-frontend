@@ -1,39 +1,20 @@
 
+```tsx
 import React from 'react';
 import { Control, FieldArrayWithId, FieldErrors } from 'react-hook-form';
-import * as z from "zod";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2 } from 'lucide-react';
-
-// This schema is duplicated here for prop typing, ideally, it would come from a shared types file.
-const selectedStudentSchema = z.object({
-  _id: z.string().optional(),
-  name: z.string().min(1, "Name is required"),
-  rollno: z.string().min(1, "Roll number is required"),
-  branch: z.string().min(1, "Branch is required"),
-});
-
-type SelectedStudentFormData = z.infer<typeof selectedStudentSchema>;
-
-// This schema is also duplicated for SelectionFormData typing.
-const selectionSchema = z.object({
-  selectedStudents: z.array(selectedStudentSchema).min(1, "At least one student must be selected"),
-  nextSteps: z.string().optional(),
-  documentLink: z.string().url("Must be a valid URL").optional().or(z.literal('')),
-  additionalNotes: z.string().optional(),
-});
-
-type SelectionFormData = z.infer<typeof selectionSchema>;
+import { SelectionFormData, SelectedStudentInput } from './selectionSchemas'; // Import shared schemas/types
 
 interface SelectionFormFieldsProps {
   formControl: Control<SelectionFormData>;
   studentFields: FieldArrayWithId<SelectionFormData, "selectedStudents", "id">[];
-  studentAppend: (value: SelectedStudentFormData) => void;
+  studentAppend: (value: SelectedStudentInput) => void;
   studentRemove: (index: number) => void;
-  errors: FieldErrors<SelectionFormData>; // To display top-level error for selectedStudents array if needed
+  errors: FieldErrors<SelectionFormData>;
 }
 
 const SelectionFormFields: React.FC<SelectionFormFieldsProps> = ({
@@ -51,7 +32,7 @@ const SelectionFormFields: React.FC<SelectionFormFieldsProps> = ({
             <p className="text-sm font-medium text-destructive mt-1">{errors.selectedStudents.message}</p>
         )}
         {studentFields.map((field, index) => (
-          <div key={field.id} className="grid grid-cols-10 gap-2 mt-2 items-start"> {/* Changed items-center to items-start for message alignment */}
+          <div key={field.id} className="grid grid-cols-10 gap-2 mt-2 items-start">
             <div className="col-span-3">
               <FormField
                 control={formControl}
@@ -94,7 +75,7 @@ const SelectionFormFields: React.FC<SelectionFormFieldsProps> = ({
                 )}
               />
             </div>
-            <div className="col-span-1 pt-2"> {/* Added pt-2 for better alignment with inputs */}
+            <div className="col-span-1 pt-2">
               <Button
                 type="button"
                 variant="ghost"
@@ -162,3 +143,4 @@ const SelectionFormFields: React.FC<SelectionFormFieldsProps> = ({
 };
 
 export default SelectionFormFields;
+```

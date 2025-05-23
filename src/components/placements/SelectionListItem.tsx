@@ -1,7 +1,8 @@
 
+```tsx
 import React from 'react';
 import { SelectionRecord } from '@/api/selectionService';
-import { AuthUser } from '@/contexts/AuthContext';
+import { User } from '@/contexts/AuthContext'; // Changed AuthUser to User
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -11,10 +12,10 @@ interface SelectionListItemProps {
   selectionRecord: SelectionRecord;
   recordIndex: number;
   totalRecords: number;
-  user: AuthUser | null;
+  user: User | null; // Changed AuthUser to User
   onEdit: (selection: SelectionRecord) => void;
   onDeletePress: (selectionId: string) => void;
-  isDeleting: boolean; // To show loader on the correct delete button
+  isDeleting: boolean;
   currentDeletingId: string | null;
 }
 
@@ -124,3 +125,4 @@ const SelectionListItem: React.FC<SelectionListItemProps> = ({
 };
 
 export default SelectionListItem;
+```
