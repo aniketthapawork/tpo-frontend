@@ -1,4 +1,3 @@
-
 import axiosInstance from './axiosInstance';
 
 export interface SelectedStudent {
@@ -31,7 +30,24 @@ interface ApiResponse<T> {
 
 export const getSelectionsByPlacementId = async (placementId: string): Promise<SelectionRecord[]> => {
   const response = await axiosInstance.get<ApiResponse<SelectionRecord>>(`/selections/${placementId}`);
-  return response.data.selections || [];
+  
+  // Prefer the 'selections' array if it's provided and is actually an array
+  if (Array.isArray(response.data.selections)) {
+    return response.data.selections;
+  }
+  
+  // Fallback: if 'selections' isn't a valid array, check if a singular 'selection' object was provided
+  if (response.data.selection && typeof response.data.selection === 'object') {
+    // Assuming if 'selection' object is returned from this endpoint for the given placementId, it's the relevant one.
+    // We'll wrap it in an array to match the expected return type.
+    const singleSelection = response.data.selection as SelectionRecord;
+    // Optional: Add a check to ensure the single selection matches the placementId, though the API endpoint should guarantee this.
+    // if (singleSelection.placementId === placementId) {
+    return [singleSelection];
+    // }
+  }
+  
+  return []; // Default to empty array if neither form of data is found or applicable
 };
 
 export const addSelection = async (placementId: string, data: SelectionData): Promise<SelectionRecord> => {
@@ -50,4 +66,3 @@ export const deleteSelection = async (selectionId: string): Promise<{ message: s
   const response = await axiosInstance.delete<{ message: string }>(`/selections/${selectionId}`);
   return response.data;
 };
-
