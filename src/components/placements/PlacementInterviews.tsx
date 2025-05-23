@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getInterviewsByPlacementId, Interview, InterviewData, addInterview, updateInterview, deleteInterview } from '@/api/interviewService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, CalendarDays, LinkIcon, ListChecks, Clock, UserCheck, PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { Loader2, AlertTriangle, PlusCircle, Edit, Trash2, LinkIcon, ListChecks } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -46,8 +45,8 @@ const interviewSchema = z.object({
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().min(1, "End time is required"),
   mode: z.string().min(1, "Mode is required"),
-  meetingLink: z.string().optional(),
-  shortlistedStudentsDoc: z.string().optional(),
+  meetingLink: z.string().url("Must be a valid URL").optional().or(z.literal('')),
+  shortlistedStudentsDoc: z.string().url("Must be a valid URL").optional().or(z.literal('')),
   additionalNotes: z.string().optional(),
 });
 
@@ -120,8 +119,13 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
 
   const handleAddSubmit = (data: InterviewFormData) => {
     const interviewData: InterviewData = {
-      ...data,
-      additionalNotes: data.additionalNotes ? [data.additionalNotes] : [],
+      interviewDate: data.interviewDate,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      mode: data.mode,
+      meetingLink: data.meetingLink || undefined,
+      shortlistedStudentsDoc: data.shortlistedStudentsDoc || undefined,
+      additionalNotes: data.additionalNotes ? data.additionalNotes.split('\n').map(s => s.trim()).filter(s => s) : [],
     };
     addMutation.mutate(interviewData);
   };
@@ -129,8 +133,13 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
   const handleEditSubmit = (data: InterviewFormData) => {
     if (!editingInterview) return;
     const interviewData: Partial<InterviewData> = {
-      ...data,
-      additionalNotes: data.additionalNotes ? [data.additionalNotes] : [],
+      interviewDate: data.interviewDate,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      mode: data.mode,
+      meetingLink: data.meetingLink || undefined,
+      shortlistedStudentsDoc: data.shortlistedStudentsDoc || undefined,
+      additionalNotes: data.additionalNotes ? data.additionalNotes.split('\n').map(s => s.trim()).filter(s => s) : [],
     };
     updateMutation.mutate({ id: editingInterview._id, data: interviewData });
   };
@@ -138,7 +147,7 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
   const handleEdit = (interview: Interview) => {
     setEditingInterview(interview);
     editInterviewForm.reset({
-      interviewDate: interview.interviewDate.split('T')[0],
+      interviewDate: interview.interviewDate.split('T')[0], // Assuming ISO string, take date part
       startTime: interview.startTime,
       endTime: interview.endTime,
       mode: interview.mode,
@@ -281,7 +290,7 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
                     name="additionalNotes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Additional Notes (Optional)</FormLabel>
+                        <FormLabel>Additional Notes (Optional, one per line)</FormLabel>
                         <FormControl>
                           <Textarea placeholder="Any additional information..." {...field} />
                         </FormControl>
@@ -308,12 +317,12 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
         {interviews && interviews.length > 0 ? (
           <div className="space-y-4">
             {interviews.map((interview) => (
-              <Card key={interview._id} className="bg-slate-50">
+              <Card key={interview._id} className="bg-slate-50 dark:bg-slate-800">
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div>
                       <CardTitle className="text-lg">
-                        Interview on {new Date(interview.interviewDate).toLocaleDateString()}
+                        Interview on {new Date(interview.interviewDate).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
                       </CardTitle>
                       <CardDescription>
                         {interview.startTime} - {interview.endTime} ({interview.mode})
@@ -321,12 +330,12 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
                     </div>
                     {user?.role === 'admin' && (
                       <div className="flex space-x-1">
-                        <Button variant="ghost" size="sm" onClick={() => handleEdit(interview)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(interview)} className="h-8 w-8">
                           <Edit className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="sm">
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
@@ -339,7 +348,8 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => deleteMutation.mutate(interview._id)}>
+                              <AlertDialogAction onClick={() => deleteMutation.mutate(interview._id)} disabled={deleteMutation.isPending}>
+                                {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Delete
                               </AlertDialogAction>
                             </AlertDialogFooter>
@@ -352,16 +362,16 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
                 <CardContent className="space-y-2 text-sm">
                   {interview.meetingLink && (
                     <div className="flex items-center">
-                      <LinkIcon className="mr-2 h-4 w-4 text-slate-500" />
-                      <a href={interview.meetingLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                      <LinkIcon className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
+                      <a href={interview.meetingLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all dark:text-blue-400">
                         Meeting Link
                       </a>
                     </div>
                   )}
                   {interview.shortlistedStudentsDoc && (
                     <div className="flex items-center">
-                      <ListChecks className="mr-2 h-4 w-4 text-slate-500" />
-                       <a href={interview.shortlistedStudentsDoc} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                      <ListChecks className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
+                       <a href={interview.shortlistedStudentsDoc} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all dark:text-blue-400">
                         Shortlisted Students
                       </a>
                     </div>
@@ -374,16 +384,19 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
                       </ul>
                     </div>
                   )}
+                   {(!interview.meetingLink && !interview.shortlistedStudentsDoc && (!interview.additionalNotes || interview.additionalNotes.length === 0)) && (
+                     <p className="text-slate-500 dark:text-slate-400 italic">No additional details provided.</p>
+                   )}
                 </CardContent>
               </Card>
             ))}
           </div>
         ) : (
-          <p className="text-slate-600">No interview rounds scheduled yet.</p>
+          <p className="text-slate-600 dark:text-slate-400">No interview rounds scheduled yet.</p>
         )}
 
         {/* Edit Interview Dialog */}
-        <Dialog open={!!editingInterview} onOpenChange={() => setEditingInterview(null)}>
+        <Dialog open={!!editingInterview} onOpenChange={(isOpen) => { if (!isOpen) setEditingInterview(null); }}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>Edit Interview</DialogTitle>
@@ -484,7 +497,7 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
                   name="additionalNotes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Additional Notes (Optional)</FormLabel>
+                      <FormLabel>Additional Notes (Optional, one per line)</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Any additional information..." {...field} />
                       </FormControl>
@@ -494,7 +507,7 @@ const PlacementInterviews: React.FC<PlacementInterviewsProps> = ({ placementId }
                 />
                 <DialogFooter>
                   <DialogClose asChild>
-                    <Button type="button" variant="outline">Cancel</Button>
+                    <Button type="button" variant="outline" onClick={() => setEditingInterview(null)}>Cancel</Button>
                   </DialogClose>
                   <Button type="submit" disabled={updateMutation.isPending}>
                     {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

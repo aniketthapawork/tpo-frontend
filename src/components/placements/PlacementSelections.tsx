@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSelectionsByPlacementId, SelectionRecord, SelectedStudent, SelectionData, addSelection, updateSelection, deleteSelection } from '@/api/selectionService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, Users, LinkIcon, FileText, Award, PlusCircle, Edit, Trash2 } from 'lucide-react';
+import { Loader2, AlertTriangle, Award, PlusCircle, Edit, Trash2, FileText } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -42,6 +41,7 @@ interface PlacementSelectionsProps {
 }
 
 const selectedStudentSchema = z.object({
+  _id: z.string().optional(), // Added to match SelectedStudent interface and preserve during edits
   name: z.string().min(1, "Name is required"),
   rollno: z.string().min(1, "Roll number is required"),
   branch: z.string().min(1, "Branch is required"),
@@ -50,7 +50,7 @@ const selectedStudentSchema = z.object({
 const selectionSchema = z.object({
   selectedStudents: z.array(selectedStudentSchema).min(1, "At least one student must be selected"),
   nextSteps: z.string().optional(),
-  documentLink: z.string().optional(),
+  documentLink: z.string().url("Must be a valid URL").optional().or(z.literal('')),
   additionalNotes: z.string().optional(),
 });
 
@@ -70,7 +70,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
   const addSelectionForm = useForm<SelectionFormData>({
     resolver: zodResolver(selectionSchema),
     defaultValues: {
-      selectedStudents: [{ name: '', rollno: '', branch: '' }],
+      selectedStudents: [{ name: '', rollno: '', branch: '' }], // _id will be undefined
       nextSteps: '',
       documentLink: '',
       additionalNotes: '',
@@ -130,10 +130,10 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
 
   const handleAddSubmit = (data: SelectionFormData) => {
     const selectionData: SelectionData = {
-      selectedStudents: data.selectedStudents,
-      nextSteps: data.nextSteps ? [data.nextSteps] : [],
+      selectedStudents: data.selectedStudents.map(s => ({ name: s.name, rollno: s.rollno, branch: s.branch })), // Explicitly map to ensure type, _id is omitted for new students
+      nextSteps: data.nextSteps ? data.nextSteps.split('\n').map(s => s.trim()).filter(s => s) : [],
       documentLink: data.documentLink || undefined,
-      additionalNotes: data.additionalNotes ? [data.additionalNotes] : [],
+      additionalNotes: data.additionalNotes ? data.additionalNotes.split('\n').map(s => s.trim()).filter(s => s) : [],
     };
     addMutation.mutate(selectionData);
   };
@@ -141,10 +141,10 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
   const handleEditSubmit = (data: SelectionFormData) => {
     if (!editingSelection) return;
     const selectionData: Partial<SelectionData> = {
-      selectedStudents: data.selectedStudents,
-      nextSteps: data.nextSteps ? [data.nextSteps] : [],
+      selectedStudents: data.selectedStudents, // Now data.selectedStudents matches SelectedStudent[] due to schema update
+      nextSteps: data.nextSteps ? data.nextSteps.split('\n').map(s => s.trim()).filter(s => s) : [],
       documentLink: data.documentLink || undefined,
-      additionalNotes: data.additionalNotes ? [data.additionalNotes] : [],
+      additionalNotes: data.additionalNotes ? data.additionalNotes.split('\n').map(s => s.trim()).filter(s => s) : [],
     };
     updateMutation.mutate({ id: editingSelection._id, data: selectionData });
   };
@@ -152,7 +152,12 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
   const handleEdit = (selection: SelectionRecord) => {
     setEditingSelection(selection);
     editSelectionForm.reset({
-      selectedStudents: selection.selectedStudents,
+      selectedStudents: selection.selectedStudents.map(s => ({ // Ensure _id is carried over if present
+        _id: s._id,
+        name: s.name,
+        rollno: s.rollno,
+        branch: s.branch,
+      })),
       nextSteps: selection.nextSteps?.join('\n') || '',
       documentLink: selection.documentLink || '',
       additionalNotes: selection.additionalNotes?.join('\n') || '',
@@ -178,7 +183,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
     );
   }
 
-  const selectionData = selections?.[0];
+  const selectionData = selections?.[0]; // Assuming only one selection record per placement
 
   return (
     <Card className="mt-6">
@@ -190,6 +195,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
         {user?.role === 'admin' && (
           <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
+              {/* Disable Add button if selectionData already exists, as we assume one selection record per placement */}
               <Button size="sm" disabled={!!selectionData}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Selection
               </Button>
@@ -204,59 +210,68 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
                   <div>
                     <FormLabel>Selected Students</FormLabel>
                     {addFields.map((field, index) => (
-                      <div key={field.id} className="grid grid-cols-4 gap-2 mt-2">
-                        <FormField
-                          control={addSelectionForm.control}
-                          name={`selectedStudents.${index}.name`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input placeholder="Name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={addSelectionForm.control}
-                          name={`selectedStudents.${index}.rollno`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input placeholder="Roll No" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={addSelectionForm.control}
-                          name={`selectedStudents.${index}.branch`}
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormControl>
-                                <Input placeholder="Branch" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => addRemove(index)}
-                          disabled={addFields.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                      <div key={field.id} className="grid grid-cols-10 gap-2 mt-2 items-center">
+                        <div className="col-span-3">
+                          <FormField
+                            control={addSelectionForm.control}
+                            name={`selectedStudents.${index}.name`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input placeholder="Name" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <FormField
+                            control={addSelectionForm.control}
+                            name={`selectedStudents.${index}.rollno`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input placeholder="Roll No" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <div className="col-span-3">
+                          <FormField
+                            control={addSelectionForm.control}
+                            name={`selectedStudents.${index}.branch`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormControl>
+                                  <Input placeholder="Branch" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        <div className="col-span-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => addRemove(index)}
+                            disabled={addFields.length === 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => addAppend({ name: '', rollno: '', branch: '' })}
+                      onClick={() => addAppend({ name: '', rollno: '', branch: '' })} // _id will be undefined
                       className="mt-2"
                     >
                       <PlusCircle className="mr-2 h-4 w-4" /> Add Student
@@ -267,7 +282,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
                     name="nextSteps"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Next Steps (Optional)</FormLabel>
+                        <FormLabel>Next Steps (Optional, one per line)</FormLabel>
                         <FormControl>
                           <Textarea placeholder="Describe next steps..." {...field} />
                         </FormControl>
@@ -293,7 +308,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
                     name="additionalNotes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Additional Notes (Optional)</FormLabel>
+                        <FormLabel>Additional Notes (Optional, one per line)</FormLabel>
                         <FormControl>
                           <Textarea placeholder="Any additional information..." {...field} />
                         </FormControl>
@@ -325,12 +340,12 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
               </h3>
               {user?.role === 'admin' && (
                 <div className="flex space-x-1">
-                  <Button variant="ghost" size="sm" onClick={() => handleEdit(selectionData)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEdit(selectionData)}>
                     <Edit className="h-4 w-4" />
                   </Button>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
@@ -338,12 +353,13 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Selection</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete this selection? This action cannot be undone.
+                          Are you sure you want to delete this selection record? This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteMutation.mutate(selectionData._id)}>
+                        <AlertDialogAction onClick={() => deleteMutation.mutate(selectionData._id)} disabled={deleteMutation.isPending}>
+                           {deleteMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                           Delete
                         </AlertDialogAction>
                       </AlertDialogFooter>
@@ -379,7 +395,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
             {selectionData.nextSteps && selectionData.nextSteps.length > 0 && (
               <div>
                 <h4 className="font-semibold">Next Steps:</h4>
-                <ul className="list-disc list-inside pl-4 text-slate-700">
+                <ul className="list-disc list-inside pl-4 text-slate-700 dark:text-slate-300">
                   {selectionData.nextSteps.map((step, index) => <li key={index}>{step}</li>)}
                 </ul>
               </div>
@@ -387,8 +403,8 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
 
             {selectionData.documentLink && (
               <div className="flex items-center">
-                <FileText className="mr-2 h-4 w-4 text-slate-500" />
-                <a href={selectionData.documentLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                <FileText className="mr-2 h-4 w-4 text-slate-500 dark:text-slate-400" />
+                <a href={selectionData.documentLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all dark:text-blue-400">
                   Relevant Document
                 </a>
               </div>
@@ -397,18 +413,22 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
             {selectionData.additionalNotes && selectionData.additionalNotes.length > 0 && (
               <div>
                 <h4 className="font-semibold">Additional Notes:</h4>
-                <ul className="list-disc list-inside pl-4 text-slate-700">
+                <ul className="list-disc list-inside pl-4 text-slate-700 dark:text-slate-300">
                   {selectionData.additionalNotes.map((note, index) => <li key={index}>{note}</li>)}
                 </ul>
               </div>
             )}
+             {(!selectionData.nextSteps || selectionData.nextSteps.length === 0) && !selectionData.documentLink && (!selectionData.additionalNotes || selectionData.additionalNotes.length === 0) && (
+                selectionData.selectedStudents && selectionData.selectedStudents.length > 0 && /* Show this only if students are listed but no other info */
+                <p className="text-slate-500 dark:text-slate-400 italic mt-2">No further details provided for this selection.</p>
+             )}
           </div>
         ) : (
-          <p className="text-slate-600">No final selection data available yet.</p>
+          <p className="text-slate-600 dark:text-slate-400">No final selection data available yet.</p>
         )}
 
         {/* Edit Selection Dialog */}
-        <Dialog open={!!editingSelection} onOpenChange={() => setEditingSelection(null)}>
+        <Dialog open={!!editingSelection} onOpenChange={(isOpen) => { if(!isOpen) setEditingSelection(null); }}>
           <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Edit Selection</DialogTitle>
@@ -419,59 +439,68 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
                 <div>
                   <FormLabel>Selected Students</FormLabel>
                   {editFields.map((field, index) => (
-                    <div key={field.id} className="grid grid-cols-4 gap-2 mt-2">
-                      <FormField
-                        control={editSelectionForm.control}
-                        name={`selectedStudents.${index}.name`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input placeholder="Name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={editSelectionForm.control}
-                        name={`selectedStudents.${index}.rollno`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input placeholder="Roll No" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={editSelectionForm.control}
-                        name={`selectedStudents.${index}.branch`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input placeholder="Branch" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => editRemove(index)}
-                        disabled={editFields.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                    <div key={field.id} className="grid grid-cols-10 gap-2 mt-2 items-center">
+                       <div className="col-span-3">
+                        <FormField
+                          control={editSelectionForm.control}
+                          name={`selectedStudents.${index}.name`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input placeholder="Name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <FormField
+                          control={editSelectionForm.control}
+                          name={`selectedStudents.${index}.rollno`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input placeholder="Roll No" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <FormField
+                          control={editSelectionForm.control}
+                          name={`selectedStudents.${index}.branch`}
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Input placeholder="Branch" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      <div className="col-span-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => editRemove(index)}
+                          disabled={editFields.length === 1}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => editAppend({ name: '', rollno: '', branch: '' })}
+                    onClick={() => editAppend({ name: '', rollno: '', branch: '' })} // _id will be undefined
                     className="mt-2"
                   >
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Student
@@ -482,7 +511,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
                   name="nextSteps"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Next Steps (Optional)</FormLabel>
+                      <FormLabel>Next Steps (Optional, one per line)</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Describe next steps..." {...field} />
                       </FormControl>
@@ -508,7 +537,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
                   name="additionalNotes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Additional Notes (Optional)</FormLabel>
+                      <FormLabel>Additional Notes (Optional, one per line)</FormLabel>
                       <FormControl>
                         <Textarea placeholder="Any additional information..." {...field} />
                       </FormControl>
@@ -518,7 +547,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
                 />
                 <DialogFooter>
                   <DialogClose asChild>
-                    <Button type="button" variant="outline">Cancel</Button>
+                    <Button type="button" variant="outline" onClick={() => setEditingSelection(null)}>Cancel</Button>
                   </DialogClose>
                   <Button type="submit" disabled={updateMutation.isPending}>
                     {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
