@@ -41,7 +41,7 @@ interface PlacementSelectionsProps {
 }
 
 const selectedStudentSchema = z.object({
-  _id: z.string().optional(), // Added to match SelectedStudent interface and preserve during edits
+  _id: z.string().optional(),
   name: z.string().min(1, "Name is required"),
   rollno: z.string().min(1, "Roll number is required"),
   branch: z.string().min(1, "Branch is required"),
@@ -70,7 +70,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
   const addSelectionForm = useForm<SelectionFormData>({
     resolver: zodResolver(selectionSchema),
     defaultValues: {
-      selectedStudents: [{ name: '', rollno: '', branch: '' }], // _id will be undefined
+      selectedStudents: [{ name: '', rollno: '', branch: '' }],
       nextSteps: '',
       documentLink: '',
       additionalNotes: '',
@@ -129,8 +129,11 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
   });
 
   const handleAddSubmit = (data: SelectionFormData) => {
+    // Filter out incomplete students and ensure all required fields are present
+    const validStudents = data.selectedStudents.filter(s => s.name && s.rollno && s.branch) as SelectedStudent[];
+    
     const selectionData: SelectionData = {
-      selectedStudents: data.selectedStudents.map(s => ({ name: s.name, rollno: s.rollno, branch: s.branch })), // Explicitly map to ensure type, _id is omitted for new students
+      selectedStudents: validStudents,
       nextSteps: data.nextSteps ? data.nextSteps.split('\n').map(s => s.trim()).filter(s => s) : [],
       documentLink: data.documentLink || undefined,
       additionalNotes: data.additionalNotes ? data.additionalNotes.split('\n').map(s => s.trim()).filter(s => s) : [],
@@ -140,8 +143,12 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
 
   const handleEditSubmit = (data: SelectionFormData) => {
     if (!editingSelection) return;
+    
+    // Filter out incomplete students and ensure all required fields are present
+    const validStudents = data.selectedStudents.filter(s => s.name && s.rollno && s.branch) as SelectedStudent[];
+    
     const selectionData: Partial<SelectionData> = {
-      selectedStudents: data.selectedStudents, // Now data.selectedStudents matches SelectedStudent[] due to schema update
+      selectedStudents: validStudents,
       nextSteps: data.nextSteps ? data.nextSteps.split('\n').map(s => s.trim()).filter(s => s) : [],
       documentLink: data.documentLink || undefined,
       additionalNotes: data.additionalNotes ? data.additionalNotes.split('\n').map(s => s.trim()).filter(s => s) : [],
