@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { deletePlacement, getPlacementById, addPlacementUpdate } from '@/api/placementService';
+import { deletePlacement, getPlacementById, addPlacementUpdate, editPlacementUpdate, deletePlacementUpdate } from '@/api/placementService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -34,7 +34,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input"; // Not used in this form, but Textarea is
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -83,7 +83,13 @@ const addUpdateSchema = z.object({
   message: z.string().min(1, "Message cannot be empty.").max(500, "Message is too long."),
 });
 
+const editUpdateSchema = z.object({
+  updateType: z.enum(["Alert", "Info", "Reminder"], { required_error: "Update type is required." }),
+  message: z.string().min(1, "Message cannot be empty.").max(500, "Message is too long."),
+});
+
 type AddUpdateFormData = z.infer<typeof addUpdateSchema>;
+type EditUpdateFormData = z.infer<typeof editUpdateSchema>;
 
 const PlacementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -94,6 +100,7 @@ const PlacementDetailPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmittingUpdate, setIsSubmittingUpdate] = useState(false);
   const [showAddUpdateDialog, setShowAddUpdateDialog] = useState(false);
+  const [editingUpdate, setEditingUpdate] = useState<PlacementUpdate | null>(null);
 
   const fetchPlacementDetails = async () => {
     if (!id) {
@@ -128,15 +135,27 @@ const PlacementDetailPage = () => {
     },
   });
 
+  const editUpdateForm = useForm<EditUpdateFormData>({
+    resolver: zodResolver(editUpdateSchema),
+    defaultValues: {
+      updateType: "Info",
+      message: "",
+    },
+  });
+
   const handleAddUpdateSubmit = async (values: AddUpdateFormData) => {
     if (!id) return;
     setIsSubmittingUpdate(true);
     try {
-      await addPlacementUpdate(id, values);
+      const updateData = {
+        updateType: values.updateType,
+        message: values.message,
+      };
+      await addPlacementUpdate(id, updateData);
       toast({ title: "Success", description: "Placement update added successfully." });
       setShowAddUpdateDialog(false);
       addUpdateForm.reset();
-      await fetchPlacementDetails(); // Refetch to get the latest updates
+      await fetchPlacementDetails();
     } catch (err: any) {
       console.error("Failed to add placement update:", err);
       const errorMessage = err.response?.data?.message || "Failed to add update.";
@@ -144,6 +163,49 @@ const PlacementDetailPage = () => {
     } finally {
       setIsSubmittingUpdate(false);
     }
+  };
+
+  const handleEditUpdateSubmit = async (values: EditUpdateFormData) => {
+    if (!id || !editingUpdate) return;
+    setIsSubmittingUpdate(true);
+    try {
+      const updateData = {
+        updateType: values.updateType,
+        message: values.message,
+      };
+      await editPlacementUpdate(id, editingUpdate._id, updateData);
+      toast({ title: "Success", description: "Update edited successfully." });
+      setEditingUpdate(null);
+      editUpdateForm.reset();
+      await fetchPlacementDetails();
+    } catch (err: any) {
+      console.error("Failed to edit update:", err);
+      const errorMessage = err.response?.data?.message || "Failed to edit update.";
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+    } finally {
+      setIsSubmittingUpdate(false);
+    }
+  };
+
+  const handleDeleteUpdate = async (updateId: string) => {
+    if (!id) return;
+    try {
+      await deletePlacementUpdate(id, updateId);
+      toast({ title: "Success", description: "Update deleted successfully." });
+      await fetchPlacementDetails();
+    } catch (err: any) {
+      console.error("Failed to delete update:", err);
+      const errorMessage = err.response?.data?.message || "Failed to delete update.";
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
+    }
+  };
+
+  const handleEditUpdate = (update: PlacementUpdate) => {
+    setEditingUpdate(update);
+    editUpdateForm.reset({
+      updateType: update.updateType,
+      message: update.message,
+    });
   };
 
   const handleDeletePlacement = async () => {
@@ -389,16 +451,51 @@ const PlacementDetailPage = () => {
                 {placement.updates.slice().reverse().map(update => ( 
                   <Card key={update._id} className="bg-blue-50 border-blue-200">
                     <CardHeader className="pb-2 pt-3">
-                      <CardTitle className="text-md text-blue-700 flex items-center">
-                        {update.updateType === 'Alert' && <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />}
-                        {update.updateType === 'Info' && <Info className="mr-2 h-5 w-5 text-blue-500" />}
-                        {update.updateType === 'Reminder' && <CalendarClock className="mr-2 h-5 w-5 text-green-500" />}
-                        {update.updateType}
-                        {/* TODO: Admin edit/delete buttons for this specific update */}
-                      </CardTitle>
-                      <CardDescription className="text-xs text-slate-500">
-                        {new Date(update.createdAt).toLocaleString()}
-                      </CardDescription>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <CardTitle className="text-md text-blue-700 flex items-center">
+                            {update.updateType === 'Alert' && <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />}
+                            {update.updateType === 'Info' && <Info className="mr-2 h-5 w-5 text-blue-500" />}
+                            {update.updateType === 'Reminder' && <CalendarClock className="mr-2 h-5 w-5 text-green-500" />}
+                            {update.updateType}
+                          </CardTitle>
+                          <CardDescription className="text-xs text-slate-500">
+                            {new Date(update.createdAt).toLocaleString()}
+                          </CardDescription>
+                        </div>
+                        {user?.role === 'admin' && (
+                          <div className="flex space-x-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditUpdate(update)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Update</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this update? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDeleteUpdate(update._id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent className="pb-3">
                       <p className="text-slate-700">{update.message}</p>
