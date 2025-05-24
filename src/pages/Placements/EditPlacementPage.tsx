@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,9 +49,12 @@ const EditPlacementPage = () => {
       return getPlacementById(id);
     },
     enabled: !!id,
-    onSuccess: (data) => {
-      const placement = data.placement;
-      // Map PlacementDetails to AddPlacementFormData
+  });
+
+  // Use useEffect to handle form reset when placementData is available
+  useEffect(() => {
+    if (placementData?.placement) {
+      const placement = placementData.placement;
       const defaultValues: Partial<AddPlacementFormData> = {
         title: placement.title,
         company: {
@@ -64,19 +66,17 @@ const EditPlacementPage = () => {
         eligibleBranches: placement.eligibleBranches.join(', '),
         ctcDetails: placement.ctcDetails,
         applicationDeadline: placement.applicationDeadline ? new Date(placement.applicationDeadline) : undefined,
-        // Assuming jobDescription is available on placement object, if not, it might need adjustment based on actual API response structure
-        jobDescription: (placement as any).jobDescription || '', // Use (placement as any) if jobDescription is not in PlacementDetails type
+        jobDescription: (placement as any).jobDescription || '',
         selectionProcess: placement.driveRounds ? placement.driveRounds.join(', ') : '',
-        // Assuming additionalDetails is available
         additionalDetails: (placement as any).additionalDetails || (placement.notes ? placement.notes.join('\n') : ''),
-        driveType: placement.modeOfRecruitment as "On-Campus" | "Off-Campus" | "Pool-Campus" || undefined, // Cast if API returns string
+        driveType: placement.modeOfRecruitment as "On-Campus" | "Off-Campus" | "Pool-Campus" || undefined,
         jobLocation: placement.location || '',
         registrationLink: placement.applyLink || '',
-        status: (placement as any).status || 'Upcoming', // Assuming status is available
+        status: (placement as any).status || 'Upcoming',
       };
       form.reset(defaultValues);
-    },
-  });
+    }
+  }, [placementData, form]);
 
   const mutation = useMutation({
     mutationFn: (payload: EditPlacementPayload) => {
