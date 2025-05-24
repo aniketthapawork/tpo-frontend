@@ -16,7 +16,7 @@ import LoginPage from "./pages/Auth/LoginPage";
 import SignupPage from "./pages/Auth/SignupPage";
 import PlacementsListPage from "./pages/Placements/PlacementsListPage";
 import PlacementDetailPage from "./pages/Placements/PlacementDetailPage";
-import AddPlacementPage from "./pages/Placements/AddPlacementPage"; // Import the new page
+import AddPlacementPage from "./pages/Placements/AddPlacementPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
@@ -34,8 +34,8 @@ const AppLayout = () => (
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <TooltipProvider>
         <Toaster />
         <Sonner /> {/* Review if both toasters are needed */}
         <BrowserRouter>
@@ -46,7 +46,7 @@ const App = () => (
               <Route path="/signup" element={<SignupPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="/placements" element={<PlacementsListPage />} />
-                <Route path="/placements/add" element={<AddPlacementPage />} /> {/* Add route for new page */}
+                <Route path="/placements/add" element={<AddPlacementPage />} />
                 <Route path="/placements/:id" element={<PlacementDetailPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>
@@ -54,10 +54,9 @@ const App = () => (
             </Route>
           </Routes>
         </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
 export default App;
-
