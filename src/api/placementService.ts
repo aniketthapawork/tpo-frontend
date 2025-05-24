@@ -1,6 +1,7 @@
 
 import axiosInstance from './axiosInstance';
-import { PlacementDetails, PlacementUpdate } from '@/pages/Placements/PlacementDetailPage'; // Assuming types are exported or defined here
+import { PlacementDetails, PlacementUpdate } from '@/components/placements/detail/placementDetailTypes';
+import { AddUpdateFormData, EditUpdateFormData } from '@/components/placements/detail/updateFormSchemas';
 
 export const getAllPlacements = async () => {
   const response = await axiosInstance.get('/placements');
@@ -25,18 +26,15 @@ export const updatePlacement = async (id: string, placementData: Partial<Placeme
   return response.data;
 };
 
-interface AddPlacementUpdateData {
-  updateType: 'Alert' | 'Info' | 'Reminder';
-  message: string;
-}
-
-export const addPlacementUpdate = async (placementId: string, updateData: AddPlacementUpdateData) => {
+// Using AddUpdateFormData from Zod schema directly
+export const addPlacementUpdate = async (placementId: string, updateData: AddUpdateFormData) => {
   const response = await axiosInstance.post(`/placements/${placementId}/updates`, updateData);
   return response.data;
 };
 
-// Placeholder for editing an existing update - not implemented in UI yet
-export const editPlacementUpdate = async (placementId: string, updateId: string, updateData: Partial<AddPlacementUpdateData>) => {
+// Using EditUpdateFormData from Zod schema directly
+// Assuming edit operation requires all fields as defined in EditUpdateFormData
+export const editPlacementUpdate = async (placementId: string, updateId: string, updateData: EditUpdateFormData) => {
   const response = await axiosInstance.put(`/placements/${placementId}/updates/${updateId}`, updateData);
   return response.data;
 };
