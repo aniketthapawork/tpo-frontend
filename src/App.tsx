@@ -1,6 +1,6 @@
 
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner"; // Keep Sonner if used, or remove if only one toaster is preferred.
+import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
@@ -17,6 +17,7 @@ import SignupPage from "./pages/Auth/SignupPage";
 import PlacementsListPage from "./pages/Placements/PlacementsListPage";
 import PlacementDetailPage from "./pages/Placements/PlacementDetailPage";
 import AddPlacementPage from "./pages/Placements/AddPlacementPage";
+import EditPlacementPage from "./pages/Placements/EditPlacementPage"; // Import the new edit page
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
@@ -48,6 +49,8 @@ const App = () => (
                 <Route path="/placements" element={<PlacementsListPage />} />
                 <Route path="/placements/add" element={<AddPlacementPage />} />
                 <Route path="/placements/:id" element={<PlacementDetailPage />} />
+                {/* Route for editing a placement */}
+                <Route path="/admin/placements/edit/:id" element={<EditPlacementPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>
               <Route path="*" element={<NotFound />} />

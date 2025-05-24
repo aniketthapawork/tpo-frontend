@@ -36,3 +36,7 @@ export type NewPlacementPayload = Omit<AddPlacementFormData, 'eligibleBranches' 
   selectionProcess?: string[];
 };
 
+// Payload for updating an existing placement.
+// For now, assuming it's the same as creating a new one regarding the fields sent.
+export type EditPlacementPayload = NewPlacementPayload;
+
