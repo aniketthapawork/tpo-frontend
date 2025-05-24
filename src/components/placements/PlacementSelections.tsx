@@ -1,10 +1,8 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSelectionsByPlacementId, SelectionRecord, SelectedStudent, SelectionData, addSelection, updateSelection, deleteSelection } from '@/api/selectionService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DialogTrigger } from "@/components/ui/dialog";
 import { Loader2, AlertTriangle, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -168,11 +166,9 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
           <CardDescription>Students selected for this placement opportunity. Multiple selection lists can be added.</CardDescription>
         </div>
         {user?.role === 'admin' && (
-          <DialogTrigger asChild>
-            <Button size="sm" onClick={() => setShowAddDialog(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Selection List
-            </Button>
-          </DialogTrigger>
+          <Button size="sm" onClick={() => setShowAddDialog(true)}>
+            <PlusCircle className="mr-2 h-4 w-4" /> Add Selection List
+          </Button>
         )}
       </CardHeader>
       <CardContent>
