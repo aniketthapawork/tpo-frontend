@@ -1,5 +1,4 @@
 
-```ts
 import * as z from "zod";
 
 export const selectedStudentSchema = z.object({
@@ -18,4 +17,3 @@ export const selectionSchema = z.object({
 
 export type SelectionFormData = z.infer<typeof selectionSchema>;
 export type SelectedStudentInput = z.infer<typeof selectedStudentSchema>;
-```

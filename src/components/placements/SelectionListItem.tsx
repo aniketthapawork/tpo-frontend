@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { SelectionRecord } from '@/api/selectionService';
-import { User } from '@/contexts/AuthContext';
+// import { User } from '@/contexts/AuthContext'; // Cannot import as User is not exported from read-only file
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { 
@@ -17,11 +17,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Award, Edit, Trash2, FileText, Loader2 } from 'lucide-react';
 
+// Local User interface to match expected structure since it's not exported from AuthContext
+interface User {
+  role?: 'admin' | string; // Based on usage: user?.role === 'admin'
+  // Add other properties here if they are accessed from the user object in this component
+}
+
 interface SelectionListItemProps {
   selectionRecord: SelectionRecord;
   recordIndex: number;
   totalRecords: number;
-  user: User | null;
+  user: User | null; // Use local User type
   onEdit: (selection: SelectionRecord) => void;
   onDeletePress: (selectionId: string) => void;
   isDeleting: boolean;
@@ -87,7 +93,7 @@ const SelectionListItem: React.FC<SelectionListItemProps> = ({
           </TableHeader>
           <TableBody>
             {selectionRecord.selectedStudents.map((student, index) => (
-              <TableRow key={student._id || index.toString()}> {/* Ensure key is string */}
+              <TableRow key={student._id || index.toString()}>
                 <TableCell>{student.name}</TableCell>
                 <TableCell>{student.rollno}</TableCell>
                 <TableCell>{student.branch}</TableCell>

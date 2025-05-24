@@ -1,18 +1,17 @@
 
-```tsx
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSelectionsByPlacementId, SelectionRecord, SelectedStudent, SelectionData, addSelection, updateSelection, deleteSelection } from '@/api/selectionService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { DialogTrigger } from "@/components/ui/dialog"; // Only DialogTrigger needed here now
+import { DialogTrigger } from "@/components/ui/dialog";
 import { Loader2, AlertTriangle, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import SelectionListItem from './SelectionListItem';
 import AddSelectionDialog from './AddSelectionDialog';
 import EditSelectionDialog from './EditSelectionDialog';
-import { SelectionFormData, SelectedStudentInput } from './selectionSchemas'; // For processStudentData & submit handlers
+import { SelectionFormData, SelectedStudentInput } from './selectionSchemas';
 
 interface PlacementSelectionsProps {
   placementId: string;
@@ -79,30 +78,21 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
         toast({ title: "Validation Error", description: "Please ensure all selected students have a name, roll number, and branch.", variant: "destructive"});
         throw new Error("Invalid student data");
     }
-    // The Zod schema already ensures at least one student. This check is for partial entries.
-    // if (validStudents.length === 0) { 
-    //     toast({ title: "Validation Error", description: "At least one student must be selected with complete details.", variant: "destructive"});
-    //     throw new Error("No valid students");
-    // }
     return validStudents as SelectedStudent[];
   };
 
   const handleAddSubmit = (data: SelectionFormData) => {
     try {
       const processedStudents = processStudentData(data.selectedStudents);
-       if (processedStudents.length === 0 && data.selectedStudents.length > 0) { // If all students were invalid but some were attempted
-        // Toast is already handled in processStudentData if it throws an error
-        // but if it doesn't throw (e.g. all fields blank for all students), Zod handles it.
-        // This scenario is for if processStudentData filters out all students but doesn't throw.
+       if (processedStudents.length === 0 && data.selectedStudents.length > 0) { 
         if (data.selectedStudents.some(s => s.name || s.rollno || s.branch)) {
           // This case should be caught by Zod for individual fields or processStudentData's first throw.
-        } else { // All students were completely blank - Zod catches this via .min(1) on array.
-            return; // Zod will show the error "At least one student must be selected..."
+        } else { 
+            return; 
         }
-      } else if (processedStudents.length === 0) { // No students submitted / Zod should catch
+      } else if (processedStudents.length === 0) { 
         return;
       }
-
 
       const selectionData: SelectionData = {
         selectedStudents: processedStudents,
@@ -112,7 +102,6 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
       };
       addMutation.mutate(selectionData);
     } catch (e) {
-      // Error already toasted by processStudentData
       console.error("Submission error in handleAddSubmit:", e);
     }
   };
@@ -224,4 +213,3 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
 };
 
 export default PlacementSelections;
-```
