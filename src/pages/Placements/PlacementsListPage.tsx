@@ -1,11 +1,11 @@
-
 import React, { useEffect, useState } from 'react';
 import { getAllPlacements } from '@/api/placementService';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Link } from 'react-router-dom';
-import { Loader2, Briefcase, Building, CalendarDays, ExternalLink, AlertTriangle } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Loader2, Briefcase, Building, CalendarDays, ExternalLink, AlertTriangle, PlusCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Company {
   name: string;
@@ -28,6 +28,8 @@ const PlacementsListPage = () => {
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchPlacements = async () => {
@@ -84,7 +86,14 @@ const PlacementsListPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="container mx-auto">
-        <h1 className="text-4xl font-bold text-slate-800 mb-8 text-center">Available Placements</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-4xl font-bold text-slate-800">Available Placements</h1>
+          {user?.role === 'admin' && (
+            <Button onClick={() => navigate('/placements/add')}>
+              <PlusCircle className="mr-2 h-5 w-5" /> Add New Placement
+            </Button>
+          )}
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {placements.map((placement) => (
             <Card key={placement._id} className="flex flex-col justify-between hover:shadow-xl transition-shadow duration-300">

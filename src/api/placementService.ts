@@ -1,7 +1,7 @@
-
 import axiosInstance from './axiosInstance';
 import { PlacementDetails, PlacementUpdate } from '@/components/placements/detail/placementDetailTypes';
 import { AddUpdateFormData, EditUpdateFormData } from '@/components/placements/detail/updateFormSchemas';
+import { NewPlacementPayload } from '@/components/placements/addPlacementSchema'; // New import
 
 export const getAllPlacements = async () => {
   const response = await axiosInstance.get('/placements');
@@ -45,3 +45,7 @@ export const deletePlacementUpdate = async (placementId: string, updateId: strin
   return response.data;
 };
 
+export const addPlacement = async (placementData: NewPlacementPayload) => {
+  const response = await axiosInstance.post('/placements', placementData);
+  return response.data;
+};
