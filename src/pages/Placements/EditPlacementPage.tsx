@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,17 +29,21 @@ const EditPlacementPage = () => {
     resolver: zodResolver(addPlacementSchema),
     defaultValues: {
       title: '',
+      batches: '',
       company: { name: '', description: '', website: '' },
       jobDesignation: '',
+      jobDescriptionLink: '',
       eligibleBranches: '',
+      eligibilityCriteria: { activeBacklogs: '', deadBacklogs: '', otherEligibilities: '' },
       ctcDetails: '',
-      jobDescription: '',
+      location: '',
+      modeOfRecruitment: '',
       selectionProcess: '',
-      additionalDetails: '',
-      jobLocation: '',
       registrationLink: '',
+      notes: '',
+      additionalDetails: '',
       status: 'Upcoming',
-      // applicationDeadline and driveType are optional
+      // applicationDeadline and tentativeDriveDate are optional
     },
   });
 
@@ -51,27 +56,34 @@ const EditPlacementPage = () => {
     enabled: !!id,
   });
 
-  // Use useEffect to handle form reset when placementData is available
   useEffect(() => {
     if (placementData?.placement) {
       const placement = placementData.placement;
       const defaultValues: Partial<AddPlacementFormData> = {
         title: placement.title,
+        batches: placement.batches ? placement.batches.join(', ') : '',
         company: {
           name: placement.company.name,
           description: placement.company.description || '',
           website: placement.company.website || '',
         },
         jobDesignation: placement.jobDesignation,
+        jobDescriptionLink: placement.jobDescriptionLink || '',
         eligibleBranches: placement.eligibleBranches.join(', '),
+        eligibilityCriteria: {
+          activeBacklogs: placement.eligibilityCriteria?.activeBacklogs || '',
+          deadBacklogs: placement.eligibilityCriteria?.deadBacklogs || '',
+          otherEligibilities: placement.eligibilityCriteria?.otherEligibilities?.join(', ') || '',
+        },
         ctcDetails: placement.ctcDetails,
+        location: placement.location || '',
+        modeOfRecruitment: placement.modeOfRecruitment || '',
+        tentativeDriveDate: placement.tentativeDriveDate ? new Date(placement.tentativeDriveDate) : undefined,
         applicationDeadline: placement.applicationDeadline ? new Date(placement.applicationDeadline) : undefined,
-        jobDescription: (placement as any).jobDescription || '',
-        selectionProcess: placement.driveRounds ? placement.driveRounds.join(', ') : '',
-        additionalDetails: (placement as any).additionalDetails || (placement.notes ? placement.notes.join('\n') : ''),
-        driveType: placement.modeOfRecruitment as "On-Campus" | "Off-Campus" | "Pool-Campus" || undefined,
-        jobLocation: placement.location || '',
-        registrationLink: placement.applyLink || '',
+        selectionProcess: placement.driveRounds ? placement.driveRounds.join(', ') : '', // Mapped from driveRounds
+        registrationLink: placement.applyLink || '', // Mapped from applyLink
+        notes: placement.notes ? placement.notes.join('\n') : '', // Assuming notes are newline separated for textarea
+        additionalDetails: (placement as any).additionalDetails || '', // Keep if additionalDetails is a separate field not in PlacementDetails type
         status: (placement as any).status || 'Upcoming',
       };
       form.reset(defaultValues);
@@ -101,8 +113,16 @@ const EditPlacementPage = () => {
   const onSubmit = (data: AddPlacementFormData) => {
     const payload: EditPlacementPayload = {
       ...data,
+      batches: data.batches.split(',').map(s => s.trim()).filter(s => s),
       eligibleBranches: data.eligibleBranches.split(',').map(s => s.trim()).filter(s => s),
-      selectionProcess: data.selectionProcess ? data.selectionProcess.split(',').map(s => s.trim()).filter(s => s) : [],
+      selectionProcess: data.selectionProcess ? data.selectionProcess.split(',').map(s => s.trim()).filter(s => s) : undefined,
+      notes: data.notes ? data.notes.split('\n').map(s => s.trim()).filter(s => s) : undefined, // Assuming newline separated for notes
+      eligibilityCriteria: data.eligibilityCriteria ? {
+        ...data.eligibilityCriteria,
+        otherEligibilities: data.eligibilityCriteria.otherEligibilities
+          ? data.eligibilityCriteria.otherEligibilities.split(',').map(s => s.trim()).filter(s => s)
+          : undefined,
+      } : undefined,
     };
     mutation.mutate(payload);
   };
@@ -167,6 +187,19 @@ const EditPlacementPage = () => {
                 )}
               />
 
+               <FormField
+                control={form.control}
+                name="batches"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Batches (Comma-separated)</FormLabel>
+                    <FormControl><Input placeholder="e.g., 2025, 2026" {...field} /></FormControl>
+                    <FormDescription>Enter batch years separated by commas.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="company.name"
@@ -215,6 +248,18 @@ const EditPlacementPage = () => {
 
               <FormField
                 control={form.control}
+                name="jobDescriptionLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Job Description Link (Optional)</FormLabel>
+                    <FormControl><Input placeholder="e.g., https://company.com/job-description" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="eligibleBranches"
                 render={({ field }) => (
                   <FormItem>
@@ -225,6 +270,43 @@ const EditPlacementPage = () => {
                   </FormItem>
                 )}
               />
+
+              <Card className="p-4 space-y-4">
+                <CardTitle className="text-lg">Eligibility Criteria (Optional)</CardTitle>
+                <FormField
+                  control={form.control}
+                  name="eligibilityCriteria.activeBacklogs"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Active Backlogs</FormLabel>
+                      <FormControl><Input placeholder="e.g., None, Max 1" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="eligibilityCriteria.deadBacklogs"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dead Backlogs</FormLabel>
+                      <FormControl><Input placeholder="e.g., None, Max 2" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="eligibilityCriteria.otherEligibilities"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Other Eligibilities (Comma-separated)</FormLabel>
+                      <FormControl><Textarea placeholder="e.g., CGPA > 7.0, No academic gaps" {...field} rows={2} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </Card>
 
               <FormField
                 control={form.control}
@@ -237,7 +319,71 @@ const EditPlacementPage = () => {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="location" // Updated from jobLocation
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location (Optional)</FormLabel>
+                    <FormControl><Input placeholder="e.g., Bangalore, Remote" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
+              <FormField
+                control={form.control}
+                name="modeOfRecruitment" // Updated from driveType
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mode of Recruitment (Optional)</FormLabel>
+                    <FormControl><Input placeholder="e.g., Online, On-Campus, Off-Campus" {...field} /></FormControl>
+                    <FormDescription>Specify how the recruitment will be conducted.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="tentativeDriveDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Tentative Drive Date (Optional)</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-[240px] pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="applicationDeadline"
@@ -268,7 +414,6 @@ const EditPlacementPage = () => {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          // disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } // Allow past dates for editing if needed
                           initialFocus
                         />
                       </PopoverContent>
@@ -280,11 +425,12 @@ const EditPlacementPage = () => {
 
               <FormField
                 control={form.control}
-                name="jobDescription"
+                name="selectionProcess"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Job Description (Optional)</FormLabel>
-                    <FormControl><Textarea placeholder="Detailed job responsibilities and requirements" {...field} rows={5} /></FormControl>
+                    <FormLabel>Selection Process (Optional, Comma-separated rounds)</FormLabel>
+                    <FormControl><Textarea placeholder="e.g., Online Test, Technical Interview, HR Interview" {...field} rows={3} /></FormControl>
+                    <FormDescription>Describe the stages/rounds of the selection process.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -292,12 +438,23 @@ const EditPlacementPage = () => {
 
               <FormField
                 control={form.control}
-                name="selectionProcess"
+                name="registrationLink" // This maps to applyLink from backend
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Selection Process (Optional, Comma-separated)</FormLabel>
-                    <FormControl><Textarea placeholder="e.g., Online Test, Technical Interview, HR Interview" {...field} rows={3} /></FormControl>
-                    <FormDescription>Describe the stages of the selection process.</FormDescription>
+                    <FormLabel>Registration/Apply Link (Optional)</FormLabel>
+                    <FormControl><Input placeholder="e.g., https://forms.gle/xyz" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes (Optional, each note on a new line)</FormLabel>
+                    <FormControl><Textarea placeholder="Important notes or reminders" {...field} rows={3} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -315,52 +472,6 @@ const EditPlacementPage = () => {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="driveType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Drive Type (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value} /* Use value prop for controlled component */>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select drive type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="On-Campus">On-Campus</SelectItem>
-                        <SelectItem value="Off-Campus">Off-Campus</SelectItem>
-                        <SelectItem value="Pool-Campus">Pool-Campus</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="jobLocation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Job Location (Optional)</FormLabel>
-                    <FormControl><Input placeholder="e.g., Bangalore, Remote" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="registrationLink"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Registration Link (Optional)</FormLabel>
-                    <FormControl><Input placeholder="e.g., https://forms.gle/xyz" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <FormField
                 control={form.control}
@@ -368,7 +479,7 @@ const EditPlacementPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                     <Select onValueChange={field.onChange} value={field.value} /* Use value prop for controlled component */ >
+                     <Select onValueChange={field.onChange} value={field.value} >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />

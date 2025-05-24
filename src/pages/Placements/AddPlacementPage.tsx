@@ -27,17 +27,21 @@ const AddPlacementPage = () => {
     resolver: zodResolver(addPlacementSchema),
     defaultValues: {
       title: '',
+      batches: '',
       company: { name: '', description: '', website: '' },
       jobDesignation: '',
+      jobDescriptionLink: '',
       eligibleBranches: '',
+      eligibilityCriteria: { activeBacklogs: '', deadBacklogs: '', otherEligibilities: '' },
       ctcDetails: '',
-      jobDescription: '',
+      location: '',
+      modeOfRecruitment: '', // Default to empty string for text input
       selectionProcess: '',
-      additionalDetails: '',
-      jobLocation: '',
       registrationLink: '',
+      notes: '',
+      additionalDetails: '',
       status: 'Upcoming',
-      // applicationDeadline and driveType are optional, so no default needed unless specified
+      // applicationDeadline and tentativeDriveDate are optional
     },
   });
 
@@ -60,8 +64,16 @@ const AddPlacementPage = () => {
   const onSubmit = (data: AddPlacementFormData) => {
     const payload: NewPlacementPayload = {
       ...data,
+      batches: data.batches.split(',').map(s => s.trim()).filter(s => s),
       eligibleBranches: data.eligibleBranches.split(',').map(s => s.trim()).filter(s => s),
-      selectionProcess: data.selectionProcess ? data.selectionProcess.split(',').map(s => s.trim()).filter(s => s) : [],
+      selectionProcess: data.selectionProcess ? data.selectionProcess.split(',').map(s => s.trim()).filter(s => s) : undefined,
+      notes: data.notes ? data.notes.split('\n').map(s => s.trim()).filter(s => s) : undefined, // Assuming newline separated for notes
+      eligibilityCriteria: data.eligibilityCriteria ? {
+        ...data.eligibilityCriteria,
+        otherEligibilities: data.eligibilityCriteria.otherEligibilities
+          ? data.eligibilityCriteria.otherEligibilities.split(',').map(s => s.trim()).filter(s => s)
+          : undefined,
+      } : undefined,
     };
     mutation.mutate(payload);
   };
@@ -83,6 +95,19 @@ const AddPlacementPage = () => {
                   <FormItem>
                     <FormLabel>Placement Title</FormLabel>
                     <FormControl><Input placeholder="e.g., Software Engineer Intern" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="batches"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Batches (Comma-separated)</FormLabel>
+                    <FormControl><Input placeholder="e.g., 2025, 2026" {...field} /></FormControl>
+                    <FormDescription>Enter batch years separated by commas.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -136,6 +161,18 @@ const AddPlacementPage = () => {
 
               <FormField
                 control={form.control}
+                name="jobDescriptionLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Job Description Link (Optional)</FormLabel>
+                    <FormControl><Input placeholder="e.g., https://company.com/job-description" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="eligibleBranches"
                 render={({ field }) => (
                   <FormItem>
@@ -146,6 +183,44 @@ const AddPlacementPage = () => {
                   </FormItem>
                 )}
               />
+              
+              <Card className="p-4 space-y-4">
+                <CardTitle className="text-lg">Eligibility Criteria (Optional)</CardTitle>
+                <FormField
+                  control={form.control}
+                  name="eligibilityCriteria.activeBacklogs"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Active Backlogs</FormLabel>
+                      <FormControl><Input placeholder="e.g., None, Max 1" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="eligibilityCriteria.deadBacklogs"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dead Backlogs</FormLabel>
+                      <FormControl><Input placeholder="e.g., None, Max 2" {...field} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="eligibilityCriteria.otherEligibilities"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Other Eligibilities (Comma-separated)</FormLabel>
+                      <FormControl><Textarea placeholder="e.g., CGPA > 7.0, No academic gaps" {...field} rows={2} /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </Card>
+
 
               <FormField
                 control={form.control}
@@ -154,6 +229,70 @@ const AddPlacementPage = () => {
                   <FormItem>
                     <FormLabel>CTC Details</FormLabel>
                     <FormControl><Input placeholder="e.g., 12 LPA + Benefits" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Location (Optional)</FormLabel>
+                    <FormControl><Input placeholder="e.g., Bangalore, Remote" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="modeOfRecruitment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mode of Recruitment (Optional)</FormLabel>
+                     <FormControl><Input placeholder="e.g., Online, On-Campus, Off-Campus" {...field} /></FormControl>
+                     <FormDescription>Specify how the recruitment will be conducted.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="tentativeDriveDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Tentative Drive Date (Optional)</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-[240px] pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -189,7 +328,7 @@ const AddPlacementPage = () => {
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } // disable past dates
+                          disabled={(date) => date < new Date(new Date().setDate(new Date().getDate() -1)) } 
                           initialFocus
                         />
                       </PopoverContent>
@@ -201,11 +340,12 @@ const AddPlacementPage = () => {
 
               <FormField
                 control={form.control}
-                name="jobDescription"
+                name="selectionProcess"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Job Description (Optional)</FormLabel>
-                    <FormControl><Textarea placeholder="Detailed job responsibilities and requirements" {...field} rows={5} /></FormControl>
+                    <FormLabel>Selection Process (Optional, Comma-separated rounds)</FormLabel>
+                    <FormControl><Textarea placeholder="e.g., Online Test, Technical Interview, HR Interview" {...field} rows={3} /></FormControl>
+                    <FormDescription>Describe the stages/rounds of the selection process.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -213,12 +353,24 @@ const AddPlacementPage = () => {
 
               <FormField
                 control={form.control}
-                name="selectionProcess"
+                name="registrationLink"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Selection Process (Optional, Comma-separated)</FormLabel>
-                    <FormControl><Textarea placeholder="e.g., Online Test, Technical Interview, HR Interview" {...field} rows={3} /></FormControl>
-                    <FormDescription>Describe the stages of the selection process.</FormDescription>
+                    <FormLabel>Registration/Apply Link (Optional)</FormLabel>
+                    <FormControl><Input placeholder="e.g., https://forms.gle/xyz" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes (Optional, each note on a new line)</FormLabel>
+                    <FormControl><Textarea placeholder="e.g., Update resume\nPrepare for coding round" {...field} rows={3} /></FormControl>
+                    <FormDescription>Important notes or reminders for this placement.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -231,53 +383,6 @@ const AddPlacementPage = () => {
                   <FormItem>
                     <FormLabel>Additional Details (Optional)</FormLabel>
                     <FormControl><Textarea placeholder="Any other relevant information" {...field} rows={3} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="driveType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Drive Type (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select drive type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="On-Campus">On-Campus</SelectItem>
-                        <SelectItem value="Off-Campus">Off-Campus</SelectItem>
-                        <SelectItem value="Pool-Campus">Pool-Campus</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="jobLocation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Job Location (Optional)</FormLabel>
-                    <FormControl><Input placeholder="e.g., Bangalore, Remote" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="registrationLink"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Registration Link (Optional)</FormLabel>
-                    <FormControl><Input placeholder="e.g., https://forms.gle/xyz" {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -319,4 +424,3 @@ const AddPlacementPage = () => {
 };
 
 export default AddPlacementPage;
-
