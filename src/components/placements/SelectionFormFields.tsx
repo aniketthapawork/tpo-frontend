@@ -1,5 +1,4 @@
 
-```tsx
 import React from 'react';
 import { Control, FieldArrayWithId, FieldErrors } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
@@ -7,12 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, Trash2 } from 'lucide-react';
-import { SelectionFormData, SelectedStudentInput } from './selectionSchemas'; // Import shared schemas/types
+import { SelectionFormData, SelectedStudentInput } from './selectionSchemas';
 
 interface SelectionFormFieldsProps {
   formControl: Control<SelectionFormData>;
   studentFields: FieldArrayWithId<SelectionFormData, "selectedStudents", "id">[];
-  studentAppend: (value: SelectedStudentInput) => void;
+  studentAppend: (value: SelectedStudentInput | { name: string; rollno: string; branch: string; _id?: string | undefined }) => void; // Adjusted type for append
   studentRemove: (index: number) => void;
   errors: FieldErrors<SelectionFormData>;
 }
@@ -28,7 +27,7 @@ const SelectionFormFields: React.FC<SelectionFormFieldsProps> = ({
     <>
       <div>
         <FormLabel>Selected Students</FormLabel>
-        {errors.selectedStudents && errors.selectedStudents.message && !errors.selectedStudents.root && (
+        {errors.selectedStudents && errors.selectedStudents.message && !errors.selectedStudents.root && !Array.isArray(errors.selectedStudents) && (
             <p className="text-sm font-medium text-destructive mt-1">{errors.selectedStudents.message}</p>
         )}
         {studentFields.map((field, index) => (
@@ -143,4 +142,3 @@ const SelectionFormFields: React.FC<SelectionFormFieldsProps> = ({
 };
 
 export default SelectionFormFields;
-```

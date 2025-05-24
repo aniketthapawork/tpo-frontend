@@ -1,18 +1,27 @@
 
-```tsx
 import React from 'react';
 import { SelectionRecord } from '@/api/selectionService';
-import { User } from '@/contexts/AuthContext'; // Changed AuthUser to User
+import { User } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog";
 import { Award, Edit, Trash2, FileText, Loader2 } from 'lucide-react';
 
 interface SelectionListItemProps {
   selectionRecord: SelectionRecord;
   recordIndex: number;
   totalRecords: number;
-  user: User | null; // Changed AuthUser to User
+  user: User | null;
   onEdit: (selection: SelectionRecord) => void;
   onDeletePress: (selectionId: string) => void;
   isDeleting: boolean;
@@ -78,7 +87,7 @@ const SelectionListItem: React.FC<SelectionListItemProps> = ({
           </TableHeader>
           <TableBody>
             {selectionRecord.selectedStudents.map((student, index) => (
-              <TableRow key={student._id || index}>
+              <TableRow key={student._id || index.toString()}> {/* Ensure key is string */}
                 <TableCell>{student.name}</TableCell>
                 <TableCell>{student.rollno}</TableCell>
                 <TableCell>{student.branch}</TableCell>
@@ -125,4 +134,3 @@ const SelectionListItem: React.FC<SelectionListItemProps> = ({
 };
 
 export default SelectionListItem;
-```
