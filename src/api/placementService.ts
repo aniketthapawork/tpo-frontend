@@ -1,8 +1,7 @@
-
 import axiosInstance from './axiosInstance';
 // Removed: import { PlacementDetails } from '@/components/placements/detail/placementDetailTypes';
-import { AddUpdateFormData, EditUpdateFormData } from '@/components/placements/detail/updateFormSchemas';
-import { NewPlacementPayload, EditPlacementPayload } from '@/components/placements/addPlacementSchema';
+import { AddUpdateFormData, EditUpdateFormData } from '@/components/placements/detail/updateFormSchemas'; // Assuming these are still valid or will be typed
+import { NewPlacementPayload, EditPlacementPayload } from '@/types/placementTypes'; // New import
 
 export const getAllPlacements = async () => {
   const response = await axiosInstance.get('/placements');
@@ -20,7 +19,7 @@ export const deletePlacement = async (id/*: string*/) => {
   return response.data;
 };
 
-// EditPlacementPayload is still used, assuming it's defined or will be handled
+// EditPlacementPayload is now imported from new types file
 export const updatePlacement = async (id/*: string*/, placementData: EditPlacementPayload) => {
   const response = await axiosInstance.put(`/placements/${id}`, placementData);
   return response.data;
@@ -42,9 +41,8 @@ export const deletePlacementUpdate = async (placementId/*: string*/, updateId/*:
   return response.data;
 };
 
-// NewPlacementPayload is still used
+// NewPlacementPayload is now imported from new types file
 export const addPlacement = async (placementData: NewPlacementPayload) => {
   const response = await axiosInstance.post('/placements', placementData);
   return response.data;
 };
-

@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod'; // Import Zod
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { addPlacementSchema, AddPlacementFormData, EditPlacementPayload } from '@/components/placements/addPlacementSchema';
+import { addPlacementSchema } from '@/components/placements/addPlacementSchema.js'; // JS import
+import { PlacementFormValues, EditPlacementPayload } from '@/types/placementTypes'; // Import new types
 import { getPlacementById, updatePlacement } from '@/api/placementService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,11 +21,11 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 const EditPlacementPage = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>(); // Ensure id type if using TS 4.x+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const form = useForm({
+  const form = useForm<PlacementFormValues>({
     resolver: zodResolver(addPlacementSchema),
     defaultValues: {
       title: '',
@@ -36,12 +38,13 @@ const EditPlacementPage = () => {
       ctcDetails: '',
       location: '',
       modeOfRecruitment: '',
+      tentativeDriveDate: undefined, // Explicitly undefined for optional dates
+      applicationDeadline: undefined, // Explicitly undefined for optional dates
       selectionProcess: '',
       registrationLink: '',
       notes: '',
       additionalDetails: '',
       status: 'Upcoming',
-      // applicationDeadline and tentativeDriveDate are optional
     },
   });
 
@@ -57,7 +60,8 @@ const EditPlacementPage = () => {
   useEffect(() => {
     if (placementData?.placement) {
       const placement = placementData.placement;
-      const defaultValues = {
+      // Ensure data from API is correctly mapped to form values
+      const defaultValues: Partial<PlacementFormValues> = {
         title: placement.title,
         batches: placement.batches ? placement.batches.join(', ') : '',
         company: {
@@ -78,13 +82,13 @@ const EditPlacementPage = () => {
         modeOfRecruitment: placement.modeOfRecruitment || '',
         tentativeDriveDate: placement.tentativeDriveDate ? new Date(placement.tentativeDriveDate) : undefined,
         applicationDeadline: placement.applicationDeadline ? new Date(placement.applicationDeadline) : undefined,
-        selectionProcess: placement.driveRounds ? placement.driveRounds.join(', ') : '', // Mapped from driveRounds
-        registrationLink: placement.applyLink || '', // Mapped from applyLink
-        notes: placement.notes ? placement.notes.join('\n') : '', // Assuming notes are newline separated for textarea
-        additionalDetails: (placement as any).additionalDetails || '', // Keep if additionalDetails is a separate field not in PlacementDetails type
+        selectionProcess: placement.driveRounds ? placement.driveRounds.join(', ') : (placement.selectionProcess ? (Array.isArray(placement.selectionProcess) ? placement.selectionProcess.join(', ') : placement.selectionProcess) : ''),
+        registrationLink: placement.applyLink || placement.registrationLink || '',
+        notes: placement.notes ? (Array.isArray(placement.notes) ? placement.notes.join('\n') : placement.notes) : '',
+        additionalDetails: (placement as any).additionalDetails || '',
         status: (placement as any).status || 'Upcoming',
       };
-      form.reset(defaultValues);
+      form.reset(defaultValues as PlacementFormValues); // Cast if confident about structure
     }
   }, [placementData, form]);
 
@@ -108,19 +112,24 @@ const EditPlacementPage = () => {
     },
   });
 
-  const onSubmit = (data: AddPlacementFormData) => {
+  const onSubmit = (data: PlacementFormValues) => { // Parameter is now PlacementFormValues
     const payload: EditPlacementPayload = {
       ...data,
+      company: data.company || { name: '' }, // Ensure company is not undefined
       batches: data.batches.split(',').map(s => s.trim()).filter(s => s),
       eligibleBranches: data.eligibleBranches.split(',').map(s => s.trim()).filter(s => s),
       selectionProcess: data.selectionProcess ? data.selectionProcess.split(',').map(s => s.trim()).filter(s => s) : undefined,
-      notes: data.notes ? data.notes.split('\n').map(s => s.trim()).filter(s => s) : undefined, // Assuming newline separated for notes
+      notes: data.notes ? data.notes.split('\n').map(s => s.trim()).filter(s => s) : undefined,
       eligibilityCriteria: data.eligibilityCriteria ? {
-        ...data.eligibilityCriteria,
+        activeBacklogs: data.eligibilityCriteria.activeBacklogs || undefined,
+        deadBacklogs: data.eligibilityCriteria.deadBacklogs || undefined,
         otherEligibilities: data.eligibilityCriteria.otherEligibilities
           ? data.eligibilityCriteria.otherEligibilities.split(',').map(s => s.trim()).filter(s => s)
           : undefined,
       } : undefined,
+      // Dates (tentativeDriveDate, applicationDeadline) are passed as Date objects from form
+      // and are part of '...data' spread if they exist on PlacementFormValues.
+      // The EditPlacementPayload type expects them as Date | undefined.
     };
     mutation.mutate(payload);
   };
@@ -139,7 +148,7 @@ const EditPlacementPage = () => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-4 text-center">
         <AlertTriangle className="h-16 w-16 text-red-500" />
         <h2 className="mt-4 text-2xl font-semibold text-red-700">Error Loading Placement</h2>
-        <p className="mt-2 text-slate-600">{fetchError.message || "Could not load placement data."}</p>
+        <p className="mt-2 text-slate-600">{(fetchError as Error).message || "Could not load placement data."}</p>
         <Link to="/placements">
           <Button variant="outline" className="mt-6">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Placements
@@ -215,7 +224,7 @@ const EditPlacementPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Company Description (Optional)</FormLabel>
-                    <FormControl><Textarea placeholder="Brief description of the company" {...field} /></FormControl>
+                    <FormControl><Textarea placeholder="Brief description of the company" {...field} value={field.value || ''} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -226,7 +235,7 @@ const EditPlacementPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Company Website (Optional)</FormLabel>
-                    <FormControl><Input placeholder="e.g., https://careers.google.com" {...field} /></FormControl>
+                    <FormControl><Input placeholder="e.g., https://careers.google.com" {...field} value={field.value || ''} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -250,7 +259,7 @@ const EditPlacementPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Job Description Link (Optional)</FormLabel>
-                    <FormControl><Input placeholder="e.g., https://company.com/job-description" {...field} /></FormControl>
+                    <FormControl><Input placeholder="e.g., https://company.com/job-description" {...field} value={field.value || ''} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -277,7 +286,7 @@ const EditPlacementPage = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Active Backlogs</FormLabel>
-                      <FormControl><Input placeholder="e.g., None, Max 1" {...field} /></FormControl>
+                      <FormControl><Input placeholder="e.g., None, Max 1" {...field} value={field.value || ''} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -288,7 +297,7 @@ const EditPlacementPage = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Dead Backlogs</FormLabel>
-                      <FormControl><Input placeholder="e.g., None, Max 2" {...field} /></FormControl>
+                      <FormControl><Input placeholder="e.g., None, Max 2" {...field} value={field.value || ''} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -299,7 +308,7 @@ const EditPlacementPage = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Other Eligibilities (Comma-separated)</FormLabel>
-                      <FormControl><Textarea placeholder="e.g., CGPA > 7.0, No academic gaps" {...field} rows={2} /></FormControl>
+                      <FormControl><Textarea placeholder="e.g., CGPA > 7.0, No academic gaps" {...field} value={field.value || ''} rows={2} /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -324,7 +333,7 @@ const EditPlacementPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Location (Optional)</FormLabel>
-                    <FormControl><Input placeholder="e.g., Bangalore, Remote" {...field} /></FormControl>
+                    <FormControl><Input placeholder="e.g., Bangalore, Remote" {...field} value={field.value || ''} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -336,7 +345,7 @@ const EditPlacementPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Mode of Recruitment (Optional)</FormLabel>
-                    <FormControl><Input placeholder="e.g., Online, On-Campus, Off-Campus" {...field} /></FormControl>
+                    <FormControl><Input placeholder="e.g., Online, On-Campus, Off-Campus" {...field} value={field.value || ''} /></FormControl>
                     <FormDescription>Specify how the recruitment will be conducted.</FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -360,7 +369,7 @@ const EditPlacementPage = () => {
                             )}
                           >
                             {field.value ? (
-                              format(new Date(field.value), "PPP") // Ensure field.value is a Date
+                              format(field.value, "PPP") // Use field.value directly
                             ) : (
                               <span>Pick a date</span>
                             )}
@@ -371,7 +380,7 @@ const EditPlacementPage = () => {
                       <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value ? new Date(field.value) : undefined} // Ensure selected is a Date
+                          selected={field.value} // Use field.value directly
                           onSelect={field.onChange}
                           initialFocus
                         />
@@ -399,7 +408,7 @@ const EditPlacementPage = () => {
                             )}
                           >
                             {field.value ? (
-                              format(new Date(field.value), "PPP") // Ensure field.value is a Date
+                              format(field.value, "PPP") // Use field.value directly
                             ) : (
                               <span>Pick a date</span>
                             )}
@@ -410,7 +419,7 @@ const EditPlacementPage = () => {
                       <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value ? new Date(field.value) : undefined} // Ensure selected is a Date
+                          selected={field.value} // Use field.value directly
                           onSelect={field.onChange}
                           initialFocus
                         />
@@ -427,7 +436,7 @@ const EditPlacementPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Selection Process (Optional, Comma-separated rounds)</FormLabel>
-                    <FormControl><Textarea placeholder="e.g., Online Test, Technical Interview, HR Interview" {...field} rows={3} /></FormControl>
+                    <FormControl><Textarea placeholder="e.g., Online Test, Technical Interview, HR Interview" {...field} value={field.value || ''} rows={3} /></FormControl>
                     <FormDescription>Describe the stages/rounds of the selection process.</FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -440,7 +449,7 @@ const EditPlacementPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Registration/Apply Link (Optional)</FormLabel>
-                    <FormControl><Input placeholder="e.g., https://forms.gle/xyz" {...field} /></FormControl>
+                    <FormControl><Input placeholder="e.g., https://forms.gle/xyz" {...field} value={field.value || ''} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -452,7 +461,7 @@ const EditPlacementPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Notes (Optional, each note on a new line)</FormLabel>
-                    <FormControl><Textarea placeholder="Important notes or reminders" {...field} rows={3} /></FormControl>
+                    <FormControl><Textarea placeholder="Important notes or reminders" {...field} value={field.value || ''} rows={3} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -464,7 +473,7 @@ const EditPlacementPage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Additional Details (Optional)</FormLabel>
-                    <FormControl><Textarea placeholder="Any other relevant information" {...field} rows={3} /></FormControl>
+                    <FormControl><Textarea placeholder="Any other relevant information" {...field} value={field.value || ''} rows={3} /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -497,8 +506,8 @@ const EditPlacementPage = () => {
                 <Button type="button" variant="outline" onClick={() => navigate(id ? `/placements/${id}` : '/placements')}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={mutation.isPending} className="md:w-auto">
-                  {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" disabled={mutation.isPending || form.formState.isSubmitting} className="md:w-auto">
+                  {(mutation.isPending || form.formState.isSubmitting) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Changes
                 </Button>
               </div>
