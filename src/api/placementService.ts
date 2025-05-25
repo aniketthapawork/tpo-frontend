@@ -1,5 +1,6 @@
+
 import axiosInstance from './axiosInstance';
-import { PlacementDetails } from '@/components/placements/detail/placementDetailTypes';
+// Removed: import { PlacementDetails } from '@/components/placements/detail/placementDetailTypes';
 import { AddUpdateFormData, EditUpdateFormData } from '@/components/placements/detail/updateFormSchemas';
 import { NewPlacementPayload, EditPlacementPayload } from '@/components/placements/addPlacementSchema';
 
@@ -8,37 +9,42 @@ export const getAllPlacements = async () => {
   return response.data;
 };
 
-export const getPlacementById = async (id: string): Promise<{ placement: PlacementDetails }> => {
+// Removed PlacementDetails from return type annotation
+export const getPlacementById = async (id/*: string*/) => {
   const response = await axiosInstance.get(`/placements/${id}`);
-  return response.data;
+  return response.data; // The actual structure { placement: ... } is determined by the API
 };
 
-export const deletePlacement = async (id: string) => {
+export const deletePlacement = async (id/*: string*/) => {
   const response = await axiosInstance.delete(`/placements/${id}`);
   return response.data;
 };
 
-export const updatePlacement = async (id: string, placementData: EditPlacementPayload) => {
+// EditPlacementPayload is still used, assuming it's defined or will be handled
+export const updatePlacement = async (id/*: string*/, placementData: EditPlacementPayload) => {
   const response = await axiosInstance.put(`/placements/${id}`, placementData);
   return response.data;
 };
 
-export const addPlacementUpdate = async (placementId: string, updateData: AddUpdateFormData) => {
+// AddUpdateFormData and EditUpdateFormData are still used
+export const addPlacementUpdate = async (placementId/*: string*/, updateData: AddUpdateFormData) => {
   const response = await axiosInstance.post(`/placements/${placementId}/updates`, updateData);
   return response.data;
 };
 
-export const editPlacementUpdate = async (placementId: string, updateId: string, updateData: EditUpdateFormData) => {
+export const editPlacementUpdate = async (placementId/*: string*/, updateId/*: string*/, updateData: EditUpdateFormData) => {
   const response = await axiosInstance.put(`/placements/${placementId}/updates/${updateId}`, updateData);
   return response.data;
 };
 
-export const deletePlacementUpdate = async (placementId: string, updateId: string) => {
+export const deletePlacementUpdate = async (placementId/*: string*/, updateId/*: string*/) => {
   const response = await axiosInstance.delete(`/placements/${placementId}/updates/${updateId}`);
   return response.data;
 };
 
+// NewPlacementPayload is still used
 export const addPlacement = async (placementData: NewPlacementPayload) => {
   const response = await axiosInstance.post('/placements', placementData);
   return response.data;
 };
+

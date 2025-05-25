@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useForm } from "react-hook-form";
@@ -6,13 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { deletePlacement, getPlacementById, addPlacementUpdate, editPlacementUpdate, deletePlacementUpdate } from '@/api/placementService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, ArrowLeft, AlertTriangle as AlertTriangleIcon } from 'lucide-react'; // Renamed to avoid conflict
+import { Loader2, ArrowLeft, AlertTriangle as AlertTriangleIcon } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import PlacementInterviews from '@/components/placements/PlacementInterviews';
 import PlacementSelections from '@/components/placements/PlacementSelections';
 
-import { PlacementDetails, PlacementUpdate } from '@/components/placements/detail/placementDetailTypes';
 import { addUpdateSchema, editUpdateSchema, AddUpdateFormData, EditUpdateFormData } from '@/components/placements/detail/updateFormSchemas';
 import AddPlacementUpdateDialog from '@/components/placements/detail/AddPlacementUpdateDialog';
 import EditPlacementUpdateDialog from '@/components/placements/detail/EditPlacementUpdateDialog';
@@ -20,21 +18,17 @@ import PlacementHeader from '@/components/placements/detail/PlacementHeader';
 import PlacementInformationSection from '@/components/placements/detail/PlacementInformationSection';
 import PlacementUpdatesSection from '@/components/placements/detail/PlacementUpdatesSection';
 
-// Types like Company, EligibilityCriteria are now in placementDetailTypes.ts
-// Schemas addUpdateSchema, editUpdateSchema and their types are now in updateFormSchemas.ts
-// These are imported above.
-
 const PlacementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [placement, setPlacement] = useState<PlacementDetails | null>(null);
+  const [placement, setPlacement] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const [isSubmittingUpdate, setIsSubmittingUpdate] = useState(false);
   const [showAddUpdateDialog, setShowAddUpdateDialog] = useState(false);
-  const [editingUpdate, setEditingUpdate] = useState<PlacementUpdate | null>(null); // For Edit Dialog
+  const [editingUpdate, setEditingUpdate] = useState<any | null>(null);
 
   const fetchPlacementDetails = async () => {
     if (!id) {
@@ -45,7 +39,7 @@ const PlacementDetailPage = () => {
     try {
       setIsLoading(true);
       const data = await getPlacementById(id);
-      setPlacement(data.placement); // Assuming API returns { placement: PlacementDetails }
+      setPlacement(data.placement); 
       setError(null);
     } catch (err: any) {
       console.error("Failed to fetch placement details:", err);
@@ -68,7 +62,6 @@ const PlacementDetailPage = () => {
 
   const editUpdateForm = useForm<EditUpdateFormData>({
     resolver: zodResolver(editUpdateSchema),
-    // Default values will be set when editingUpdate changes, via EditPlacementUpdateDialog's useEffect
   });
 
   const handleAddUpdateSubmit = async (values: AddUpdateFormData) => {
@@ -79,7 +72,7 @@ const PlacementDetailPage = () => {
       toast({ title: "Success", description: "Placement update added successfully." });
       setShowAddUpdateDialog(false);
       addUpdateForm.reset();
-      await fetchPlacementDetails(); // Refetch to show new update
+      await fetchPlacementDetails(); 
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || "Failed to add update.";
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
@@ -88,9 +81,8 @@ const PlacementDetailPage = () => {
     }
   };
 
-  const handleEditUpdateClick = (update: PlacementUpdate) => {
+  const handleEditUpdateClick = (update: any) => {
     setEditingUpdate(update);
-    // Form reset is handled within EditPlacementUpdateDialog based on 'editingUpdate' prop
   };
   
   const handleEditUpdateSubmit = async (values: EditUpdateFormData) => {
@@ -99,11 +91,9 @@ const PlacementDetailPage = () => {
     try {
       await editPlacementUpdate(id, editingUpdate._id, values);
       toast({ title: "Success", description: "Update edited successfully." });
-      setEditingUpdate(null); // Close dialog
-      // editUpdateForm.reset(); // Reset is handled by dialog or if needed here
-      await fetchPlacementDetails(); // Refetch
-    } catch (err: any)
-{
+      setEditingUpdate(null); 
+      await fetchPlacementDetails(); 
+    } catch (err: any) {
       const errorMessage = err.response?.data?.message || "Failed to edit update.";
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
@@ -113,11 +103,10 @@ const PlacementDetailPage = () => {
 
   const handleDeleteUpdate = async (updateId: string) => {
     if (!id) return;
-    // Consider adding a loading state for delete if it's slow
     try {
       await deletePlacementUpdate(id, updateId);
       toast({ title: "Success", description: "Update deleted successfully." });
-      await fetchPlacementDetails(); // Refetch
+      await fetchPlacementDetails(); 
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || "Failed to delete update.";
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
@@ -179,8 +168,6 @@ const PlacementDetailPage = () => {
     );
   }
   
-  // The renderDetail helper function is now part of PlacementInformationSection.tsx
-
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="container mx-auto">
@@ -192,7 +179,6 @@ const PlacementDetailPage = () => {
           </Link>
         </div>
 
-        {/* Add Update Dialog is now a separate component, triggered from PlacementHeader */}
         <AddPlacementUpdateDialog
           open={showAddUpdateDialog}
           onOpenChange={setShowAddUpdateDialog}
@@ -201,7 +187,6 @@ const PlacementDetailPage = () => {
           isSubmitting={isSubmittingUpdate}
         />
 
-        {/* Edit Update Dialog */}
         <EditPlacementUpdateDialog
           open={!!editingUpdate}
           onOpenChange={(isOpen) => { if (!isOpen) setEditingUpdate(null); }}
@@ -243,6 +228,3 @@ const PlacementDetailPage = () => {
 };
 
 export default PlacementDetailPage;
-
-// Exporting types like PlacementDetails, PlacementUpdate are no longer needed here
-// as they are moved to src/components/placements/detail/placementDetailTypes.ts

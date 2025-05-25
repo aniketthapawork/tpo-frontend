@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { addPlacementSchema, AddPlacementFormData, EditPlacementPayload } from '@/components/placements/addPlacementSchema';
 import { getPlacementById, updatePlacement } from '@/api/placementService';
-import { PlacementDetails } from '@/components/placements/detail/placementDetailTypes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -21,11 +19,11 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 const EditPlacementPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const form = useForm<AddPlacementFormData>({
+  const form = useForm({
     resolver: zodResolver(addPlacementSchema),
     defaultValues: {
       title: '',
@@ -59,7 +57,7 @@ const EditPlacementPage = () => {
   useEffect(() => {
     if (placementData?.placement) {
       const placement = placementData.placement;
-      const defaultValues: Partial<AddPlacementFormData> = {
+      const defaultValues = {
         title: placement.title,
         batches: placement.batches ? placement.batches.join(', ') : '',
         company: {
@@ -322,7 +320,7 @@ const EditPlacementPage = () => {
 
               <FormField
                 control={form.control}
-                name="location" // Updated from jobLocation
+                name="location"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Location (Optional)</FormLabel>
@@ -334,7 +332,7 @@ const EditPlacementPage = () => {
               
               <FormField
                 control={form.control}
-                name="modeOfRecruitment" // Updated from driveType
+                name="modeOfRecruitment"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Mode of Recruitment (Optional)</FormLabel>
@@ -362,7 +360,7 @@ const EditPlacementPage = () => {
                             )}
                           >
                             {field.value ? (
-                              format(field.value, "PPP")
+                              format(new Date(field.value), "PPP") // Ensure field.value is a Date
                             ) : (
                               <span>Pick a date</span>
                             )}
@@ -373,7 +371,7 @@ const EditPlacementPage = () => {
                       <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value}
+                          selected={field.value ? new Date(field.value) : undefined} // Ensure selected is a Date
                           onSelect={field.onChange}
                           initialFocus
                         />
@@ -401,7 +399,7 @@ const EditPlacementPage = () => {
                             )}
                           >
                             {field.value ? (
-                              format(field.value, "PPP")
+                              format(new Date(field.value), "PPP") // Ensure field.value is a Date
                             ) : (
                               <span>Pick a date</span>
                             )}
@@ -412,7 +410,7 @@ const EditPlacementPage = () => {
                       <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                         <Calendar
                           mode="single"
-                          selected={field.value}
+                          selected={field.value ? new Date(field.value) : undefined} // Ensure selected is a Date
                           onSelect={field.onChange}
                           initialFocus
                         />
@@ -438,7 +436,7 @@ const EditPlacementPage = () => {
 
               <FormField
                 control={form.control}
-                name="registrationLink" // This maps to applyLink from backend
+                name="registrationLink"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Registration/Apply Link (Optional)</FormLabel>
