@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useForm } from "react-hook-form";
@@ -32,9 +31,12 @@ const PlacementDetailPage = () => {
   const [editingUpdate, setEditingUpdate] = useState(null);
 
   const fetchPlacementDetails = async () => {
-    if (!id) {
-      setError("Placement ID is missing.");
+    if (!id || id === ":id") { // Added check for ":id"
+      const errorMsg = "Placement ID is invalid or not yet available.";
+      setError(errorMsg);
       setIsLoading(false);
+      toast({ title: "Error", description: "Invalid placement ID in URL.", variant: "destructive" });
+      console.error("Attempted to fetch placement details with invalid ID:", id);
       return;
     }
     try {
@@ -66,7 +68,10 @@ const PlacementDetailPage = () => {
   });
 
   const handleAddUpdateSubmit = async (values) => {
-    if (!id) return;
+    if (!id || id === ":id") {
+        toast({ title: "Error", description: "Cannot add update due to invalid Placement ID.", variant: "destructive" });
+        return;
+    }
     setIsSubmittingUpdate(true);
     try {
       await addPlacementUpdate(id, values);
@@ -87,7 +92,10 @@ const PlacementDetailPage = () => {
   };
   
   const handleEditUpdateSubmit = async (values) => {
-    if (!id || !editingUpdate) return;
+    if (!id || id === ":id" || !editingUpdate) {
+        toast({ title: "Error", description: "Cannot edit update due to invalid Placement or Update ID.", variant: "destructive" });
+        return;
+    }
     setIsSubmittingUpdate(true);
     try {
       await editPlacementUpdate(id, editingUpdate._id, values);
@@ -103,7 +111,10 @@ const PlacementDetailPage = () => {
   };
 
   const handleDeleteUpdate = async (updateId) => {
-    if (!id) return;
+    if (!id || id === ":id") {
+        toast({ title: "Error", description: "Cannot delete update due to invalid Placement ID.", variant: "destructive" });
+        return;
+    }
     try {
       await deletePlacementUpdate(id, updateId);
       toast({ title: "Success", description: "Update deleted successfully." });
@@ -115,7 +126,10 @@ const PlacementDetailPage = () => {
   };
   
   const handleDeletePlacement = async () => {
-    if (!id) return;
+    if (!id || id === ":id") {
+        toast({ title: "Error", description: "Cannot delete placement due to invalid Placement ID.", variant: "destructive" });
+        return;
+    }
     try {
       await deletePlacement(id);
       toast({ title: "Success", description: "Placement deleted successfully." });
@@ -127,8 +141,10 @@ const PlacementDetailPage = () => {
   };
 
   const handleNavigateToEditPlacement = () => {
-    if (placement) {
+    if (placement && placement._id && placement._id !== ":id") {
       navigate(`/admin/placements/edit/${placement._id}`);
+    } else {
+      toast({ title: "Error", description: "Cannot navigate to edit page due to invalid Placement ID.", variant: "destructive" });
     }
   };
 
@@ -216,7 +232,7 @@ const PlacementDetailPage = () => {
           </CardContent>
         </Card>
 
-        {id && (
+        {id && id !== ":id" && ( // Added id !== ":id" check here as well
           <>
             <PlacementInterviews placementId={id} />
             <PlacementSelections placementId={id} />
