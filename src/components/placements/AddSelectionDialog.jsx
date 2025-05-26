@@ -11,26 +11,19 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-} from "@/components/ui/dialog";
-import { Form } from "@/components/ui/form";
+} from "@/components/ui/dialog"; // .jsx
+import { Form } from "@/components/ui/form"; // .jsx
 import { Loader2 } from 'lucide-react';
 import SelectionFormFields from './SelectionFormFields';
-import { selectionSchema, SelectionFormData, SelectedStudentInput } from './selectionSchemas';
+import { selectionSchema } from './selectionSchemas'; // .js
 
-interface AddSelectionDialogProps {
-  open: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  onSubmit: (data: SelectionFormData) => void;
-  isSubmitting: boolean;
-}
-
-const AddSelectionDialog: React.FC<AddSelectionDialogProps> = ({
+const AddSelectionDialog = ({
   open,
   onOpenChange,
   onSubmit,
   isSubmitting,
 }) => {
-  const form = useForm<SelectionFormData>({
+  const form = useForm({
     resolver: zodResolver(selectionSchema),
     defaultValues: {
       selectedStudents: [{ name: '', rollno: '', branch: '' }],
@@ -45,7 +38,7 @@ const AddSelectionDialog: React.FC<AddSelectionDialogProps> = ({
     name: "selectedStudents",
   });
 
-  const handleDialogClose = (isOpen: boolean) => {
+  const handleDialogClose = (isOpen) => {
     if (!isOpen) {
       form.reset({
         selectedStudents: [{ name: '', rollno: '', branch: '' }],
@@ -69,7 +62,7 @@ const AddSelectionDialog: React.FC<AddSelectionDialogProps> = ({
             <SelectionFormFields
               formControl={form.control}
               studentFields={fields}
-              studentAppend={(value) => append(value as SelectedStudentInput)}
+              studentAppend={(value) => append(value)}
               studentRemove={remove}
               errors={form.formState.errors}
             />

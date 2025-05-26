@@ -10,14 +10,14 @@ import { Loader2, ArrowLeft, AlertTriangle as AlertTriangleIcon } from 'lucide-r
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import PlacementInterviews from '@/components/placements/PlacementInterviews';
-import PlacementSelections from '@/components/placements/PlacementSelections';
+import PlacementSelections from '@/components/placements/PlacementSelections'; // Will resolve to .jsx
 
-import { addUpdateSchema, editUpdateSchema } from '@/components/placements/detail/updateFormSchemas';
-import AddPlacementUpdateDialog from '@/components/placements/detail/AddPlacementUpdateDialog';
-import EditPlacementUpdateDialog from '@/components/placements/detail/EditPlacementUpdateDialog';
-import PlacementHeader from '@/components/placements/detail/PlacementHeader';
-import PlacementInformationSection from '@/components/placements/detail/PlacementInformationSection';
-import PlacementUpdatesSection from '@/components/placements/detail/PlacementUpdatesSection';
+import { addUpdateSchema, editUpdateSchema } from '@/components/placements/detail/updateFormSchemas'; // .js
+import AddPlacementUpdateDialog from '@/components/placements/detail/AddPlacementUpdateDialog'; // .jsx
+import EditPlacementUpdateDialog from '@/components/placements/detail/EditPlacementUpdateDialog'; // .jsx
+import PlacementHeader from '@/components/placements/detail/PlacementHeader'; // .jsx
+import PlacementInformationSection from '@/components/placements/detail/PlacementInformationSection'; // .jsx
+import PlacementUpdatesSection from '@/components/placements/detail/PlacementUpdatesSection'; // .jsx
 
 const PlacementDetailPage = () => {
   const { id } = useParams();

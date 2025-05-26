@@ -15,9 +15,9 @@ import HomePage from "./pages/HomePage";
 import LoginPage from "./pages/Auth/LoginPage";
 import SignupPage from "./pages/Auth/SignupPage";
 import PlacementsListPage from "./pages/Placements/PlacementsListPage";
-import PlacementDetailPage from "./pages/Placements/PlacementDetailPage";
+import PlacementDetailPage from "./pages/Placements/PlacementDetailPage"; // Will resolve to .jsx after conversion
 import AddPlacementPage from "./pages/Placements/AddPlacementPage";
-import EditPlacementPage from "./pages/Placements/EditPlacementPage"; // Import the new edit page
+import EditPlacementPage from "./pages/Placements/EditPlacementPage";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
@@ -49,7 +49,6 @@ const App = () => (
                 <Route path="/placements" element={<PlacementsListPage />} />
                 <Route path="/placements/add" element={<AddPlacementPage />} />
                 <Route path="/placements/:id" element={<PlacementDetailPage />} />
-                {/* Route for editing a placement */}
                 <Route path="/admin/placements/edit/:id" element={<EditPlacementPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>

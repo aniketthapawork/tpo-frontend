@@ -1,6 +1,6 @@
 
 import * as React from "react"
-import { OTPInput, OTPInputContext } from "input-otp"
+import { OTPInput, OTPInputContext } from "input-otp" // Assuming this library supports CJS/ESM interop well
 import { Dot } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -25,7 +25,9 @@ InputOTPGroup.displayName = "InputOTPGroup"
 
 const InputOTPSlot = React.forwardRef(({ index, className, ...props }, ref) => {
   const inputOTPContext = React.useContext(OTPInputContext)
-  const { char, hasFakeCaret, isActive } = inputOTPContext.slots[index]
+  // Ensure inputOTPContext and slots are checked before accessing
+  const slot = inputOTPContext && inputOTPContext.slots && inputOTPContext.slots[index] ? inputOTPContext.slots[index] : {};
+  const { char, hasFakeCaret, isActive } = slot;
 
   return (
     <div

@@ -11,27 +11,20 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-} from "@/components/ui/dialog";
-import { Form } from "@/components/ui/form";
+} from "@/components/ui/dialog"; // .jsx
+import { Form } from "@/components/ui/form"; // .jsx
 import { Loader2 } from 'lucide-react';
 import SelectionFormFields from './SelectionFormFields';
-import { selectionSchema, SelectionFormData, SelectedStudentInput } from './selectionSchemas';
-import { SelectionRecord } from '@/api/selectionService';
+import { selectionSchema } from './selectionSchemas'; // .js
+// import { SelectionRecord } from '@/api/selectionService'; // Types removed
 
-interface EditSelectionDialogProps {
-  selectionRecordToEdit: SelectionRecord | null;
-  onOpenChange: (isOpen: boolean) => void;
-  onSubmit: (data: SelectionFormData) => void;
-  isSubmitting: boolean;
-}
-
-const EditSelectionDialog: React.FC<EditSelectionDialogProps> = ({
+const EditSelectionDialog = ({
   selectionRecordToEdit,
   onOpenChange,
   onSubmit,
   isSubmitting,
 }) => {
-  const form = useForm<SelectionFormData>({
+  const form = useForm({
     resolver: zodResolver(selectionSchema),
     defaultValues: {
       selectedStudents: [{ name: '', rollno: '', branch: '' }],
@@ -72,9 +65,9 @@ const EditSelectionDialog: React.FC<EditSelectionDialogProps> = ({
   }, [selectionRecordToEdit, form, replace]);
 
 
-  const handleDialogClose = (isOpen: boolean) => {
+  const handleDialogClose = (isOpen) => {
     if (!isOpen) {
-        form.reset({ // Reset form on explicit cancel/close
+        form.reset({ 
             selectedStudents: [{ name: '', rollno: '', branch: '' }],
             nextSteps: '',
             documentLink: '',
@@ -97,7 +90,7 @@ const EditSelectionDialog: React.FC<EditSelectionDialogProps> = ({
               <SelectionFormFields
                 formControl={form.control}
                 studentFields={fields}
-                studentAppend={(value) => append(value as SelectedStudentInput)}
+                studentAppend={(value) => append(value)}
                 studentRemove={remove}
                 errors={form.formState.errors}
               />

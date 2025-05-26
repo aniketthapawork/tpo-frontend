@@ -1,70 +1,66 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSelectionsByPlacementId, SelectionRecord, SelectedStudent, SelectionData, addSelection, updateSelection, deleteSelection } from '@/api/selectionService';
+import { getSelectionsByPlacementId, addSelection, updateSelection, deleteSelection, SelectionRecord, SelectedStudent, SelectionData } from '@/api/selectionService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, PlusCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import SelectionListItem from './SelectionListItem';
-import AddSelectionDialog from './AddSelectionDialog';
-import EditSelectionDialog from './EditSelectionDialog';
-import { SelectionFormData, SelectedStudentInput } from './selectionSchemas';
+import AddSelectionDialog from './AddSelectionDialog'; // Will resolve to .jsx
+import EditSelectionDialog from './EditSelectionDialog'; // Will resolve to .jsx
+import { selectionSchema, SelectionFormData, SelectedStudentInput } from './selectionSchemas'; // Schema definitions would be in .js if needed for validation
 
-interface PlacementSelectionsProps {
-  placementId: string;
-}
-
-const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }) => {
+const PlacementSelections = ({ placementId }) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [editingSelection, setEditingSelection] = useState<SelectionRecord | null>(null);
-  const [currentDeletingId, setCurrentDeletingId] = useState<string | null>(null);
+  const [editingSelection, setEditingSelection] = useState(null);
+  const [currentDeletingId, setCurrentDeletingId] = useState(null);
 
-  const { data: selections, isLoading, error, refetch } = useQuery<SelectionRecord[], Error>({
+  const { data: selections, isLoading, error, refetch } = useQuery({
     queryKey: ['selections', placementId],
     queryFn: () => getSelectionsByPlacementId(placementId),
   });
 
   const addMutation = useMutation({
-    mutationFn: (data: SelectionData) => addSelection(placementId, data),
+    mutationFn: (data) => addSelection(placementId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['selections', placementId] });
       toast({ title: "Success", description: "Selection added successfully." });
       setShowAddDialog(false);
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({ title: "Error", description: error.response?.data?.message || "Failed to add selection.", variant: "destructive" });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<SelectionData> }) => updateSelection(id, data),
+    mutationFn: ({ id, data }) => updateSelection(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['selections', placementId] });
       toast({ title: "Success", description: "Selection updated successfully." });
       setEditingSelection(null);
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({ title: "Error", description: error.response?.data?.message || "Failed to update selection.", variant: "destructive" });
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteSelection(id),
+    mutationFn: (id) => deleteSelection(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['selections', placementId] });
       toast({ title: "Success", description: "Selection deleted successfully." });
       setCurrentDeletingId(null);
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast({ title: "Error", description: error.response?.data?.message || "Failed to delete selection.", variant: "destructive" });
       setCurrentDeletingId(null);
     },
   });
   
-  const processStudentData = (students: SelectedStudentInput[]): SelectedStudent[] => {
+  const processStudentData = (students) => {
     const validStudents = students.filter(s => s.name && s.rollno && s.branch).map(s => ({
         name: s.name,
         rollno: s.rollno,
@@ -76,10 +72,10 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
         toast({ title: "Validation Error", description: "Please ensure all selected students have a name, roll number, and branch.", variant: "destructive"});
         throw new Error("Invalid student data");
     }
-    return validStudents as SelectedStudent[];
+    return validStudents;
   };
 
-  const handleAddSubmit = (data: SelectionFormData) => {
+  const handleAddSubmit = (data) => {
     try {
       const processedStudents = processStudentData(data.selectedStudents);
        if (processedStudents.length === 0 && data.selectedStudents.length > 0) { 
@@ -92,7 +88,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
         return;
       }
 
-      const selectionData: SelectionData = {
+      const selectionData = {
         selectedStudents: processedStudents,
         nextSteps: data.nextSteps ? data.nextSteps.split('\n').map(s => s.trim()).filter(s => s) : [],
         documentLink: data.documentLink || undefined,
@@ -104,7 +100,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
     }
   };
 
-  const handleEditSubmit = (data: SelectionFormData) => {
+  const handleEditSubmit = (data) => {
     if (!editingSelection) return;
     try {
       const processedStudents = processStudentData(data.selectedStudents);
@@ -118,7 +114,7 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
            return;
        }
 
-      const selectionData: Partial<SelectionData> = {
+      const selectionData = {
         selectedStudents: processedStudents,
         nextSteps: data.nextSteps ? data.nextSteps.split('\n').map(s => s.trim()).filter(s => s) : [],
         documentLink: data.documentLink || undefined,
@@ -130,12 +126,12 @@ const PlacementSelections: React.FC<PlacementSelectionsProps> = ({ placementId }
     }
   };
   
-  const handleDelete = (selectionId: string) => {
+  const handleDelete = (selectionId) => {
     setCurrentDeletingId(selectionId);
     deleteMutation.mutate(selectionId);
   };
 
-  const handleEdit = (selection: SelectionRecord) => {
+  const handleEdit = (selection) => {
     setEditingSelection(selection);
   };
 
