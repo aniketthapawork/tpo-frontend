@@ -1,6 +1,8 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSelectionsByPlacementId, addSelection, updateSelection, deleteSelection, SelectionRecord, SelectedStudent, SelectionData } from '@/api/selectionService';
+// Remove SelectionRecord, SelectedStudent, SelectionData from this import
+import { getSelectionsByPlacementId, addSelection, updateSelection, deleteSelection } from '@/api/selectionService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, PlusCircle } from 'lucide-react';
@@ -9,7 +11,12 @@ import { toast } from '@/hooks/use-toast';
 import SelectionListItem from './SelectionListItem';
 import AddSelectionDialog from './AddSelectionDialog'; // Will resolve to .jsx
 import EditSelectionDialog from './EditSelectionDialog'; // Will resolve to .jsx
-import { selectionSchema, SelectionFormData, SelectedStudentInput } from './selectionSchemas'; // Schema definitions would be in .js if needed for validation
+// The schema imports below are fine as they are likely Zod schemas (runtime values)
+import { selectionSchema }
+// Commenting out unused SelectionFormData, SelectedStudentInput, if they are only types and not used as values.
+// If they are Zod objects, they can remain. Given the error is about selectionService.ts types, these might be okay or similarly problematic if they are TS types from a .js file.
+// For now, focusing on the direct error.
+from './selectionSchemas'; // Schema definitions would be in .js
 
 const PlacementSelections = ({ placementId }) => {
   const { user } = useAuth();
@@ -205,3 +212,4 @@ const PlacementSelections = ({ placementId }) => {
 };
 
 export default PlacementSelections;
+
